@@ -1,0 +1,96 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Linux 中文件的隐藏属性与特殊权限 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Linux 中文件的隐藏属性与特殊权限
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-04-20T19:11:35+0800 class=date>Thursday, April 20, 2017</time></h1></header><section id=main><article class=post><div class=post-content><h2 id=01-隐藏属性>01. 隐藏属性</h2><p>可以使用 <code>chattr</code> 命令设置文件的隐藏属性，使用命令 <code>lsattr</code> 列出文件的隐藏属性。</p><h3 id=chattr>chattr</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>chattr <span style=color:#f92672>[</span>+-<span style=color:#f92672>=][</span>ASacdistu<span style=color:#f92672>]</span> 文件或目录名称
+选项与参数：
++   ：添加某一个特殊参数，其他原本存在参数则不动。
+-   ：移除某一个特殊参数，其他原本存在参数则不动。
+<span style=color:#f92672>=</span>   ：配置一定，且仅有后面接的参数
+
+A   ：当配置了 A 这个属性时，若你有存取此文件<span style=color:#f92672>(</span>或目录<span style=color:#f92672>)</span>时，他的存取时间 atime
+      将不会被修改，可避免I/O较慢的机器过度的存取磁碟。这对速度较慢的计算机有帮助
+S   ：一般文件是非同步写入磁碟的<span style=color:#f92672>(</span>原理请参考第五章sync的说明<span style=color:#f92672>)</span>，如果加上 S 这个
+      属性时，当你进行任何文件的修改，该更动会『同步』写入磁碟中。
+a   ：当配置 a 之后，这个文件将只能添加数据，而不能删除也不能修改数据，只有root
+      才能配置这个属性。
+c   ：这个属性配置之后，将会自动的将此文件『压缩』，在读取的时候将会自动解压缩，
+      但是在储存的时候，将会先进行压缩后再储存<span style=color:#f92672>(</span>看来对於大文件似乎蛮有用的！<span style=color:#f92672>)</span>
+d   ：当 dump 程序被运行的时候，配置 d 属性将可使该文件<span style=color:#f92672>(</span>或目录<span style=color:#f92672>)</span>不会被 dump 备份
+i   ：这个 i 可就很厉害了！他可以让一个文件『不能被删除、改名、配置连结也无法
+      写入或新增数据！』对於系统安全性有相当大的助益！只有 root 能配置此属性
+s   ：当文件配置了 s 属性时，如果这个文件被删除，他将会被完全的移除出这个硬盘
+      空间，所以如果误删了，完全无法救回来了喔！
+u   ：与 s 相反的，当使用 u 来配置文件时，如果该文件被删除了，则数据内容其实还
+      存在磁碟中，可以使用来救援该文件喔！
+
+注意 ：属性配置常见的是 a 与 i 的配置值，而且很多配置值必须要身为 root 才能配置
+</code></pre></div><p>给文件添加隐藏属性：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ touch test
+
+<span style=color:#75715e># 禁止修改文件</span>
+$ sudo chattr +i test
+
+<span style=color:#75715e># 尝试改变内容，提示没有权限</span>
+$ echo <span style=color:#e6db74>&#39;123&#39;</span> &gt; test
+-bash: test: Permission denied
+</code></pre></div><h3 id=lsattr>lsattr</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>lsattr <span style=color:#f92672>[</span>-adR<span style=color:#f92672>]</span> 文件或目录
+选项与参数：
+-a ：将隐藏档的属性也秀出来；
+-d ：如果接的是目录，仅列出目录本身的属性而非目录内的档名；
+-R ：连同子目录的数据也一并列出来！
+</code></pre></div><p>查看刚才添加隐藏权限的文件：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ lsattr test
+----i--------e-- test
+</code></pre></div><h2 id=02-特殊权限>02. 特殊权限</h2><p>然后说下文件的 3 个特殊权限：<strong>SUID</strong> <strong>SGID</strong> <strong>SBIT</strong>。</p><h3 id=suid>SUID</h3><p>这个是给 可执行的二进制文件 加的。是加在 ugo 权限里 <code>o</code> 上面的。加上之后，进程在执行的过程中使用的不是 运行者 的权限，而是 文件拥有者 的权限。</p><p>例如 <code>passwd</code> 这个程序，他执行的时候就是使用的 文件拥有者 的权限，因为他要改变 <code>/etc/shadow</code> 文件的内容，普通用户根本无法改变，除非是超级用户，而 <code>/usr/bin/passwd</code> 的拥有者就是 <code>root</code> 。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ ls -l /usr/bin/passwd
+<span style=color:#75715e># 可以发现 拥有者权限的最后一位是s</span>
+-rwsr-xr-x <span style=color:#ae81ff>1</span> root root <span style=color:#ae81ff>40756</span> Feb <span style=color:#ae81ff>25</span> 06:49 /usr/bin/passwd
+</code></pre></div><p>然后做个试验尝试下</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ cp /bin/ls .
+$ mkdir test
+$ chmod <span style=color:#ae81ff>000</span> test/
+$ sudo chown root:root ls
+$ sudo chmod u+xs ls
+$ ls -l
+total <span style=color:#ae81ff>2</span>
+-rwsr--r-- <span style=color:#ae81ff>1</span> root root <span style=color:#ae81ff>96364</span> Apr <span style=color:#ae81ff>20</span> 15:18 ls
+d--------- <span style=color:#ae81ff>2</span> pi   pi    <span style=color:#ae81ff>4096</span> Apr <span style=color:#ae81ff>20</span> 15:18 test
+
+<span style=color:#75715e># 使用 /bin/ls 提示没权限</span>
+$ ls test/
+ls: cannot open directory test/: Permission denied
+
+<span style=color:#75715e># 使用刚才copy过来的ls可以正常列出文件</span>
+$ ./ls test/
+</code></pre></div><p>上面是做了一个权限为 <code>d---------</code> 的目录，之后复制 <code>/bin/ls</code> 出来给他加上 <code>s</code> 的权限之后，可以正常的使用 <code>root</code> 用户的权限来列出目录的文件列表了。</p><h3 id=sgid>SGID</h3><p>SGID 是加在 ugo 权限中的 <code>g</code> 里头的。支持给 文件 和 目录 添加。</p><p><strong>加给文件：</strong></p><p>与 SUID 相似，SGID 加上之后使用的是 <code>群组</code> 的权限去执行的。</p><p><strong>加给目录：</strong></p><p>如果在这个目录里面创建新文件，则默认群组为该目录的群组。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>$ mkdir test
+$ sudo chmod g+s test/
+$ sudo chgrp root test/
+
+$ ls -ld test/
+drwxr-sr-x <span style=color:#ae81ff>2</span> pi root <span style=color:#ae81ff>4096</span> Apr <span style=color:#ae81ff>20</span> 15:53 test/ <span style=color:#75715e># 群组是 root</span>
+
+$ cd test/
+$ touch <span style=color:#ae81ff>1</span>
+$ ls -l
+
+total <span style=color:#ae81ff>0</span>
+-rw-r--r-- <span style=color:#ae81ff>1</span> pi root <span style=color:#ae81ff>0</span> Apr <span style=color:#ae81ff>20</span> 15:55 <span style=color:#ae81ff>1</span> <span style=color:#75715e># 群组变成了 root</span>
+</code></pre></div><h3 id=sbit>SBIT</h3><p>SBIT 只能加给 目录，当这个目录加入此属性后在里面创建的文件只有文件 拥有者 与 root 具有 移动/删除/更名 的权限。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>~ $ su - root
+Password:
+
+~# cd ~alh/
+
+/home/alh# mkdir test
+/home/alh# chmod +wt test/
+/home/alh# ls -ld test/
+drwxr-xr-t <span style=color:#ae81ff>2</span> root root <span style=color:#ae81ff>4096</span> Apr <span style=color:#ae81ff>20</span> 19:00 test/
+
+/home/alh# touch test/1
+/home/alh# chmod <span style=color:#ae81ff>777</span> test/1
+
+/home/alh# exit
+logout
+
+$ ls -l
+total <span style=color:#ae81ff>0</span>
+-rwxrwxrwx <span style=color:#ae81ff>1</span> root root <span style=color:#ae81ff>0</span> Apr <span style=color:#ae81ff>20</span> 19:01 <span style=color:#ae81ff>1</span>
+
+<span style=color:#75715e># 权限是777而提示无法删除</span>
+$ rm <span style=color:#ae81ff>1</span>
+rm: cannot remove ‘1’: Permission denied
+</code></pre></div><p>参考链接：</p><p><a href=http://cn.linux.vbird.org/linux_basic/0220filemanager_4.php>http://cn.linux.vbird.org/linux_basic/0220filemanager_4.php</a></p></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

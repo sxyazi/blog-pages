@@ -1,0 +1,110 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Nginx 配置 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Nginx 配置
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-04-07T05:05:38+0800 class=date>Friday, April 7, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>这篇文章写了 Nginx 常见的一些配置选项，整理并记录下来方便以后使用。</p><h2 id=01-目录结构>01. 目录结构</h2><p>安装好后的目录结构如下：</p><pre><code>nginx
+├── conf    # 配置文件
+├── html    # 网站程序
+├── logs    # 日志文件
+└── sbin    # 二进制程序文件
+</code></pre><p>配置文件默认是放在 <code>conf</code> 目录中的 <code>nginx.conf</code> 文件。</p><h2 id=02-区段介绍>02. 区段介绍</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># 全局区段
+</span><span style=color:#75715e></span>
+<span style=color:#66d9ef>events</span> {      <span style=color:#75715e># 事件区段
+</span><span style=color:#75715e></span>}
+
+<span style=color:#66d9ef>http</span> {        <span style=color:#75715e># HTTP区段
+</span><span style=color:#75715e></span>
+  <span style=color:#75715e># HTTP全局区段
+</span><span style=color:#75715e></span>
+  <span style=color:#f92672>server</span> {  <span style=color:#75715e># Server区段
+</span><span style=color:#75715e></span>
+    <span style=color:#75715e># Server全局区段
+</span><span style=color:#75715e></span>
+    <span style=color:#f92672>location</span> <span style=color:#e6db74>匹配模式</span> {    <span style=color:#75715e># Location区段
+</span><span style=color:#75715e></span>    }
+
+  }
+}
+</code></pre></div><h3 id=全局区段>全局区段</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># nginx进程pid号存放文件
+</span><span style=color:#75715e></span><span style=color:#66d9ef>pid</span> <span style=color:#e6db74>/var/run/nginx.pid</span>;
+
+<span style=color:#75715e># 运行的用户与用户组
+</span><span style=color:#75715e></span><span style=color:#66d9ef>user</span> <span style=color:#e6db74>用户</span> <span style=color:#e6db74>用户组</span>;  <span style=color:#75715e># 默认为 nobody nobody
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 工作进程数
+</span><span style=color:#75715e></span><span style=color:#66d9ef>worker_processes</span> <span style=color:#e6db74>CPU数量*CPU核数</span>;  <span style=color:#75715e># 默认为 1
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 日志文件
+</span><span style=color:#75715e># 可选级别：debug|info|notice|warn|error|crit|alert|emerg
+</span><span style=color:#75715e></span><span style=color:#66d9ef>error_log</span> <span style=color:#e6db74>/var/log/nginx.error.log</span> <span style=color:#e6db74>级别</span>;
+</code></pre></div><h3 id=事件区段>事件区段</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># 事件驱动模型
+</span><span style=color:#75715e># 可选模式：select|poll|kqueue|epoll|resig|/dev/poll|eventport
+</span><span style=color:#75715e></span><span style=color:#66d9ef>use</span> <span style=color:#e6db74>epoll</span>;
+
+<span style=color:#75715e># 设置工作进程轮流接受新连接
+</span><span style=color:#75715e></span><span style=color:#66d9ef>accept_mutex</span> <span style=color:#66d9ef>on</span>;  <span style=color:#75715e># 开启可防止惊群现象
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 工作进程是否可同时接受多个连接
+</span><span style=color:#75715e></span><span style=color:#66d9ef>multi_accept</span> <span style=color:#66d9ef>on</span>;  <span style=color:#75715e># 默认为 off
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 最大连接数
+</span><span style=color:#75715e></span><span style=color:#66d9ef>worker_connections</span> <span style=color:#ae81ff>1024</span>;  <span style=color:#75715e># 默认为 512
+</span></code></pre></div><h3 id=http-区段>HTTP 区段</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># 错误页面
+</span><span style=color:#75715e></span><span style=color:#66d9ef>error_page</span> <span style=color:#ae81ff>500</span> <span style=color:#ae81ff>502</span> <span style=color:#ae81ff>503</span> <span style=color:#ae81ff>504</span> <span style=color:#e6db74>/50x.html</span>;
+
+<span style=color:#75715e># 定义服务器组
+</span><span style=color:#75715e></span><span style=color:#66d9ef>upstream</span> <span style=color:#e6db74>服务器组名</span> {
+  <span style=color:#f92672>server</span> <span style=color:#e6db74>ip:port</span>;
+  <span style=color:#f92672>server</span> <span style=color:#e6db74>ip:port</span> <span style=color:#e6db74>backup</span>;                          <span style=color:#75715e># 热备
+</span><span style=color:#75715e></span>  <span style=color:#f92672>server</span> <span style=color:#e6db74>ip:port</span> <span style=color:#e6db74>weight=1</span>;                        <span style=color:#75715e># 权重
+</span><span style=color:#75715e></span>  <span style=color:#f92672>server</span> <span style=color:#e6db74>ip:port</span> <span style=color:#e6db74>max_fails=2</span> <span style=color:#e6db74>fail_timeout=30s</span>;    <span style=color:#75715e># 最大重试 超时
+</span><span style=color:#75715e></span>}
+</code></pre></div><h3 id=http-全局区段>HTTP 全局区段</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># 引入文件类型映射表
+</span><span style=color:#75715e></span><span style=color:#66d9ef>include</span> mime.types;
+
+<span style=color:#75715e># 默认类型
+</span><span style=color:#75715e></span><span style=color:#66d9ef>default_type</span> <span style=color:#e6db74>application/octet-stream</span>;
+
+<span style=color:#75715e># 自定义日志格式
+</span><span style=color:#75715e></span><span style=color:#66d9ef>log_format</span> <span style=color:#e6db74>格式名称</span> <span style=color:#e6db74>&#39;</span>$remote_addr–$remote_user <span style=color:#e6db74>[</span>$time_local] $request $status $body_bytes_sent $http_referer $http_user_agent $http_x_forwarded_for&#39;;
+
+<span style=color:#75715e># 用户请求日志
+</span><span style=color:#75715e></span><span style=color:#66d9ef>access_log</span> <span style=color:#e6db74>/var/log/nginx.access.log</span> <span style=color:#e6db74>格式名称</span>;  <span style=color:#75715e># off则关闭
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 减少上下文切换 数据拷贝次数
+</span><span style=color:#75715e></span><span style=color:#66d9ef>sendfile</span> <span style=color:#66d9ef>on</span>;  <span style=color:#75715e># 默认为off
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 限制sendfile() 减少阻塞
+</span><span style=color:#75715e></span><span style=color:#66d9ef>sendfile_max_chunk</span> <span style=color:#e6db74>512KB</span>;  <span style=color:#75715e># 默认为0
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 连接超时
+</span><span style=color:#75715e></span><span style=color:#66d9ef>keepalive_timeout</span> <span style=color:#ae81ff>65</span>;
+
+<span style=color:#75715e># 负载均衡
+</span><span style=color:#75715e></span><span style=color:#66d9ef>proxy_pass</span> <span style=color:#e6db74>http://服务器组名</span>;
+</code></pre></div><h3 id=server-全局区段>Server 全局区段</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># 监听端口
+</span><span style=color:#75715e></span><span style=color:#66d9ef>listen</span>      <span style=color:#ae81ff>80</span> <span style=color:#ae81ff>443</span>;
+
+<span style=color:#75715e># 服务器名
+</span><span style=color:#75715e></span><span style=color:#66d9ef>server_name</span> <span style=color:#e6db74>sxyz.blog</span> <span style=color:#e6db74>www.sxyz.blog</span>;
+
+<span style=color:#75715e># keepalive 最大请求数
+</span><span style=color:#75715e></span><span style=color:#66d9ef>keepalive_requests</span> <span style=color:#ae81ff>100</span>;
+</code></pre></div><h3 id=location-区段>Location 区段</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-nginx data-lang=nginx><span style=color:#75715e># 根目录
+</span><span style=color:#75715e></span><span style=color:#66d9ef>root</span> <span style=color:#e6db74>path</span>;
+
+<span style=color:#75715e># 默认主页
+</span><span style=color:#75715e></span><span style=color:#66d9ef>index</span> <span style=color:#e6db74>index.htm</span> <span style=color:#e6db74>index.html</span>;
+
+<span style=color:#75715e># 禁止IP
+</span><span style=color:#75715e></span><span style=color:#66d9ef>deny</span> <span style=color:#ae81ff>127</span><span style=color:#e6db74>.0.0.1</span>;
+<span style=color:#66d9ef>deny</span> <span style=color:#e6db74>all</span>;  <span style=color:#75715e># 禁止所有
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 允许IP
+</span><span style=color:#75715e></span><span style=color:#66d9ef>allow</span> <span style=color:#ae81ff>120</span><span style=color:#e6db74>.121.122.123</span>;
+<span style=color:#66d9ef>allow</span> <span style=color:#e6db74>all</span>;  <span style=color:#75715e># 允许所有
+</span><span style=color:#75715e></span>
+<span style=color:#75715e># 反向代理
+</span><span style=color:#75715e></span><span style=color:#66d9ef>proxy_pass</span> <span style=color:#e6db74>http://ip:port</span>;
+
+<span style=color:#75715e># 添加 X-Forwarded-For 字段
+</span><span style=color:#75715e></span><span style=color:#66d9ef>proxy_set_header</span> <span style=color:#e6db74>X-Forwarded-For</span> $remote_addr;
+</code></pre></div><p>参考链接：</p><p><a href=http://nginx.org/en/docs/ngx_core_module.html>http://nginx.org/en/docs/ngx_core_module.html</a></p></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

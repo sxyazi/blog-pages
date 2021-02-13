@@ -1,0 +1,173 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>在 JavaScript 中使用 Generator 函数实现异步变同步操作 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>在 JavaScript 中使用 Generator 函数实现异步变同步操作
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2018-03-29T02:41:26+0800 class=date>Thursday, March 29, 2018</time></h1></header><section id=main><article class=post><div class=post-content><p>在 ES6 中提供了一种新的异步编程解决方案，那就是 Generator 函数。这种函数又被称为生成器函数、可暂停函数。在它的方法体内可以使用 yield 关键字，配合 yield 可以实现协程。</p><p>本文主要介绍对 Generator 函数的实际应用，不过多介绍 Generator 函数的相关基础概念。</p><h2 id=01-一个普通的-http-请求>01. 一个普通的 HTTP 请求</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>axios</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;axios&#39;</span>)
+
+<span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>).<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>res</span>) =&gt; {
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+})
+</code></pre></div><p>上面代码中使用了 axios 模块发起了一个简单的 GET 请求，当这个请求得到响应时会执行 then 块中的代码，打印出响应正文。</p><p>但是如果出现连续操作（请求完一个后接着请求下一个）的时候，那么就要这么写了：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>axios</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;axios&#39;</span>)
+
+<span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>).<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>res</span>) =&gt; {
+  <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>).<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>res</span>) =&gt; {
+    <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+  })
+})
+</code></pre></div><p>从上面代码中可以发现，如果当这种连续请求的操作变得多了起来，那么就会出现 then 连环嵌套的尴尬场面。而这种需求在日常编码中却又非常常见。</p><h2 id=02-使用-generator-函数>02. 使用 Generator 函数</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>axios</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;axios&#39;</span>)
+
+<span style=color:#66d9ef>function</span><span style=color:#f92672>*</span> <span style=color:#a6e22e>request</span>() {
+  <span style=color:#66d9ef>let</span> <span style=color:#a6e22e>res</span>
+
+  <span style=color:#a6e22e>res</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+
+  <span style=color:#a6e22e>res</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+}
+
+<span style=color:#66d9ef>let</span> <span style=color:#a6e22e>p1</span>, <span style=color:#a6e22e>p2</span>
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>r</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>request</span>()
+
+<span style=color:#a6e22e>p1</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>next</span>().<span style=color:#a6e22e>value</span> <span style=color:#75715e>// Promise object
+</span><span style=color:#75715e></span><span style=color:#a6e22e>p1</span>.<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>v</span>) =&gt; {
+  <span style=color:#a6e22e>p2</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>next</span>(<span style=color:#a6e22e>v</span>).<span style=color:#a6e22e>value</span>
+
+  <span style=color:#a6e22e>p2</span>.<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>v</span>) =&gt; {
+    <span style=color:#a6e22e>r</span>.<span style=color:#a6e22e>next</span>(<span style=color:#a6e22e>v</span>)
+
+    <span style=color:#75715e>// p3 = r.next(v).value
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// p3.then(...)
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// ...
+</span><span style=color:#75715e></span>  })
+})
+</code></pre></div><p>上面代码中，创建了一个名为 <code>request</code> 的 Generator 函数，然后在后面手动调用 <code>next</code> 方法接收 <code>axios.get</code> 所产生的 Promise 对象，并且调用 then 方法依次执行。</p><h2 id=03-改进-generator-函数>03. 改进 Generator 函数</h2><p>虽然现在我们的关键代码（request 函数体中的请求代码）已经是同步了，这很棒。但是还有一个问题就是我们需要在代码中手动依次调用 <code>next</code> 来完成这些操作，这个过程非常繁琐且不合理。并且 then 的嵌套问题依旧存在。所以我们需要封装一个函数来帮我们自动完成这些操作：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>axios</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;axios&#39;</span>)
+
+<span style=color:#66d9ef>function</span><span style=color:#f92672>*</span> <span style=color:#a6e22e>request</span>() {
+  <span style=color:#66d9ef>let</span> <span style=color:#a6e22e>res</span>
+
+  <span style=color:#a6e22e>res</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+
+  <span style=color:#a6e22e>res</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+}
+
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>co</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>gen</span>, ...<span style=color:#a6e22e>args</span>) =&gt; {
+  <span style=color:#66d9ef>const</span> <span style=color:#a6e22e>g</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>gen</span>(...<span style=color:#a6e22e>args</span>)
+
+  <span style=color:#66d9ef>const</span> <span style=color:#a6e22e>actuator</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>x</span>) =&gt; {
+    <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>done</span>) {
+      <span style=color:#66d9ef>return</span>
+    }
+
+    <span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>value</span>.<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>value</span>) =&gt; {
+      <span style=color:#a6e22e>actuator</span>(<span style=color:#a6e22e>g</span>.<span style=color:#a6e22e>next</span>(<span style=color:#a6e22e>value</span>))
+    })
+  }
+
+  <span style=color:#a6e22e>actuator</span>(<span style=color:#a6e22e>g</span>.<span style=color:#a6e22e>next</span>())
+}
+
+<span style=color:#75715e>// 现在只需
+</span><span style=color:#75715e></span><span style=color:#a6e22e>co</span>(<span style=color:#a6e22e>request</span>)
+
+<span style=color:#75715e>// 如果有参数
+</span><span style=color:#75715e></span><span style=color:#a6e22e>co</span>(<span style=color:#a6e22e>request</span>, <span style=color:#e6db74>&#39;aaa&#39;</span>, <span style=color:#e6db74>&#39;bbbb&#39;</span>)
+</code></pre></div><p>其中 co 函数用来自动触发所有的 <code>next</code> 方法，并且解决了 then 不停嵌套的问题。</p><p>那么现在还有一些问题，比如我该如何得到 Generator 函数所产生的返回值呢，例如下面这样的代码：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>axios</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;axios&#39;</span>)
+
+<span style=color:#66d9ef>function</span><span style=color:#f92672>*</span> <span style=color:#a6e22e>foo</span>() {
+  <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+}
+
+<span style=color:#66d9ef>function</span><span style=color:#f92672>*</span> <span style=color:#a6e22e>bar</span>() {
+  <span style=color:#66d9ef>const</span> { <span style=color:#a6e22e>data</span> } <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>foo</span>()
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>data</span>)
+
+  <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+}
+
+<span style=color:#a6e22e>co</span>(
+  (<span style=color:#66d9ef>function</span><span style=color:#f92672>*</span> () {
+    <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>((<span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>bar</span>()).<span style=color:#a6e22e>data</span>)
+  })()
+)
+</code></pre></div><p>想要在 co 的匿名函数中得到 bar 的执行结果，同时 bar 函数也可以得到 foo 的函数结果。</p><p>如果要实现这样的功能，需要对 co 函数进行一些修改：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>isGenerator</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>f</span>) =&gt; <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>constructor</span> <span style=color:#f92672>&amp;&amp;</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>constructor</span>.<span style=color:#a6e22e>name</span> <span style=color:#f92672>===</span> <span style=color:#e6db74>&#39;GeneratorFunction&#39;</span>
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>isGeneratorObject</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>o</span>) =&gt; <span style=color:#a6e22e>o</span>.<span style=color:#a6e22e>constructor</span> <span style=color:#f92672>&amp;&amp;</span> <span style=color:#a6e22e>o</span>.<span style=color:#a6e22e>constructor</span>.<span style=color:#a6e22e>constructor</span> <span style=color:#f92672>&amp;&amp;</span> <span style=color:#a6e22e>o</span>.<span style=color:#a6e22e>constructor</span>.<span style=color:#a6e22e>constructor</span>.<span style=color:#a6e22e>name</span> <span style=color:#f92672>===</span> <span style=color:#e6db74>&#39;GeneratorFunction&#39;</span>
+
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>co</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>g</span>) =&gt; {
+  <span style=color:#66d9ef>let</span> <span style=color:#a6e22e>resolve</span>
+  <span style=color:#66d9ef>const</span> <span style=color:#a6e22e>p</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> Promise((<span style=color:#a6e22e>r</span>) =&gt; (<span style=color:#a6e22e>resolve</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>r</span>))
+
+  <span style=color:#66d9ef>const</span> <span style=color:#a6e22e>actuator</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>x</span>) =&gt; {
+    <span style=color:#66d9ef>if</span> (<span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>done</span>) {
+      <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>resolve</span>(<span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>value</span>)
+    }
+
+    Promise.<span style=color:#a6e22e>resolve</span>(<span style=color:#a6e22e>isGeneratorObject</span>(<span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>value</span>) <span style=color:#f92672>?</span> <span style=color:#a6e22e>co</span>(<span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>value</span>) <span style=color:#f92672>:</span> <span style=color:#a6e22e>x</span>.<span style=color:#a6e22e>value</span>).<span style=color:#a6e22e>then</span>(
+      (<span style=color:#a6e22e>value</span>) =&gt; {
+        <span style=color:#a6e22e>actuator</span>(<span style=color:#a6e22e>g</span>.<span style=color:#a6e22e>next</span>(<span style=color:#a6e22e>value</span>))
+      },
+      (<span style=color:#a6e22e>reason</span>) =&gt; {
+        <span style=color:#a6e22e>g</span>.<span style=color:#66d9ef>throw</span>(<span style=color:#a6e22e>reason</span>)
+      }
+    )
+  }
+
+  <span style=color:#a6e22e>actuator</span>(<span style=color:#a6e22e>g</span>.<span style=color:#a6e22e>next</span>())
+  <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>p</span>
+}
+</code></pre></div><p>现在统一了每个 co 函数都返回 Promise 对象。加进了对 Generator 对象的检查，如若 yield 后面的不是 Promise 对象而是 Generator 对象时，则再次调用 co 自身来转成 Promise 对象。</p><h2 id=04-包裹层对类的扩展>04. 包裹层：对类的扩展</h2><p>我们将上面请求的代码进一步封装成一个类：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>class</span> <span style=color:#a6e22e>Test</span> {
+  <span style=color:#f92672>*</span><span style=color:#a6e22e>foo</span>() {
+    <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+  }
+
+  <span style=color:#f92672>*</span><span style=color:#a6e22e>bar</span>() {
+    <span style=color:#66d9ef>const</span> { <span style=color:#a6e22e>data</span> } <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#66d9ef>this</span>.<span style=color:#a6e22e>foo</span>()
+    <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>data</span>)
+
+    <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+  }
+}
+
+<span style=color:#a6e22e>co</span>(
+  (<span style=color:#66d9ef>function</span><span style=color:#f92672>*</span> () {
+    <span style=color:#66d9ef>const</span> <span style=color:#a6e22e>t</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#a6e22e>Test</span>()
+    <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>((<span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>bar</span>()).<span style=color:#a6e22e>data</span>)
+  })()
+)
+</code></pre></div><p>但是此时发现，所有与类有关的操作都需要写到 co 的函数体内，有点麻烦，有没有办法可以直接使用呢？有的，可以使用 ES6 中的 Proxy 对象来实现：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>const</span> <span style=color:#a6e22e>get</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>target</span>, <span style=color:#a6e22e>prop</span>, <span style=color:#a6e22e>receiver</span>) =&gt; {
+  <span style=color:#66d9ef>return</span> (...<span style=color:#a6e22e>args</span>) =&gt; {
+    <span style=color:#66d9ef>if</span> (<span style=color:#f92672>!</span><span style=color:#a6e22e>prop</span> <span style=color:#66d9ef>in</span> <span style=color:#a6e22e>target</span>) {
+      <span style=color:#66d9ef>return</span>
+    }
+
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>isGenerator</span>(<span style=color:#a6e22e>target</span>[<span style=color:#a6e22e>prop</span>]) <span style=color:#f92672>?</span> <span style=color:#a6e22e>co</span>(<span style=color:#a6e22e>target</span>[<span style=color:#a6e22e>prop</span>].<span style=color:#a6e22e>call</span>(<span style=color:#a6e22e>target</span>, ...<span style=color:#a6e22e>args</span>)) <span style=color:#f92672>:</span> <span style=color:#a6e22e>target</span>[<span style=color:#a6e22e>prop</span>].<span style=color:#a6e22e>call</span>(<span style=color:#a6e22e>target</span>, ...<span style=color:#a6e22e>args</span>)
+  }
+}
+
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>te</span> <span style=color:#f92672>=</span> (<span style=color:#a6e22e>c</span>) =&gt;
+  <span style=color:#66d9ef>new</span> Proxy(<span style=color:#a6e22e>c</span>, {
+    <span style=color:#a6e22e>construct</span>(<span style=color:#a6e22e>cls</span>, <span style=color:#a6e22e>args</span>) {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>new</span> Proxy(<span style=color:#66d9ef>new</span> <span style=color:#a6e22e>cls</span>(...<span style=color:#a6e22e>args</span>), { <span style=color:#a6e22e>get</span> })
+    },
+  })
+
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>Test</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>te</span>(
+  <span style=color:#66d9ef>class</span> {
+    <span style=color:#f92672>*</span><span style=color:#a6e22e>foo</span>() {
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+    }
+
+    <span style=color:#f92672>*</span><span style=color:#a6e22e>bar</span>() {
+      <span style=color:#66d9ef>const</span> { <span style=color:#a6e22e>data</span> } <span style=color:#f92672>=</span> <span style=color:#66d9ef>yield</span> <span style=color:#66d9ef>this</span>.<span style=color:#a6e22e>foo</span>()
+      <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>data</span>)
+
+      <span style=color:#66d9ef>return</span> <span style=color:#66d9ef>yield</span> <span style=color:#a6e22e>axios</span>.<span style=color:#a6e22e>get</span>(<span style=color:#e6db74>&#39;https://sxyz.blog&#39;</span>)
+    }
+  }
+)
+
+<span style=color:#66d9ef>const</span> <span style=color:#a6e22e>t</span> <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> <span style=color:#a6e22e>Test</span>()
+<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>bar</span>().<span style=color:#a6e22e>then</span>((<span style=color:#a6e22e>res</span>) =&gt; {
+  <span style=color:#a6e22e>console</span>.<span style=color:#a6e22e>log</span>(<span style=color:#a6e22e>res</span>.<span style=color:#a6e22e>data</span>)
+})
+</code></pre></div><p>这样就可以不用再单独写 co 函数了，不过可能实际用途不是很大，参考只用。</p><h2 id=05-总结>05. 总结</h2><p>本文介绍了如何使用 Generator 函数实现将异步操作转变为同步操作的方法。但在实际编码过程中可直接使用 await/async 语法糖。本文算是作为补充 Generator 同步实现的原理来看吧。</p></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

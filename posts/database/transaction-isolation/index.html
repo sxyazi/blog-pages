@@ -1,0 +1,136 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>关系型数据库事务的隔离级别 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>关系型数据库事务的隔离级别
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-07-26T22:55:10+0800 class=date>Wednesday, July 26, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>SQL 标准定义了 4 种隔离级别，包括了一些具体规则，用来限定事务内外的哪些改变是可见的，哪些是不可见的。 低级别的隔离级一般支持更高的并发处理，并拥有更低的系统开销。</p><h2 id=00-查看隔离级别>00. 查看隔离级别</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#75715e># 全局
+</span><span style=color:#75715e></span><span style=color:#66d9ef>select</span> <span style=color:#f92672>@@</span>global.tx_isolation;
+
+<span style=color:#75715e># 当前会话
+</span><span style=color:#75715e></span><span style=color:#66d9ef>select</span> <span style=color:#f92672>@@</span>session.tx_isolation;
+
+<span style=color:#75715e># 设置隔离级别
+</span><span style=color:#75715e></span><span style=color:#66d9ef>set</span> [global<span style=color:#f92672>|</span>session] transaction isolation level <span style=color:#960050;background-color:#1e0010>隔离级别</span>;
+</code></pre></div><h2 id=01-serializable可串行化>01. SERIALIZABLE（可串行化）</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#75715e># 设置隔离级别
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level serializable;
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level serializable;
+
+<span style=color:#75715e># 开启事务
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> start transaction;
+mysql2<span style=color:#f92672>&gt;</span> start transaction;
+
+<span style=color:#75715e># 查询
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+Empty <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+Empty <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+
+<span style=color:#75715e># 不能新增数据
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>);
+ERROR <span style=color:#ae81ff>1205</span> (HY000): <span style=color:#66d9ef>Lock</span> wait timeout exceeded; try restarting transaction
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>);
+ERROR <span style=color:#ae81ff>1205</span> (HY000): <span style=color:#66d9ef>Lock</span> wait timeout exceeded; try restarting transaction
+
+mysql1<span style=color:#f92672>&gt;</span> commit;
+mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>); <span style=color:#75715e># 无法新增数据
+</span><span style=color:#75715e></span>mysql2<span style=color:#f92672>&gt;</span> commit;
+mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>); <span style=color:#75715e># 增加成功
+</span><span style=color:#75715e></span>mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;world&#34;</span>); <span style=color:#75715e># 增加成功
+</span></code></pre></div><p><strong>总结</strong>：如果开启事务，并且需要 select 数据，那么整个表会被这个事务占据，其他客户不能执行写操作。 这是最高的隔离级别，强制所有事务都串行的执行。</p><h2 id=02-repeatable-read可重复读>02. REPEATABLE READ（可重复读）</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#75715e># 设置隔离级别
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level repeatable <span style=color:#66d9ef>read</span>;
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level repeatable <span style=color:#66d9ef>read</span>;
+
+<span style=color:#75715e># 开启事务
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> start transaction;
+mysql2<span style=color:#f92672>&gt;</span> start transaction;
+
+<span style=color:#75715e># 查询
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+Empty <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+Empty <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+
+<span style=color:#75715e># 可以新增数据
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>);
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>);
+
+mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span> id <span style=color:#f92672>|</span> value <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>1</span> <span style=color:#f92672>|</span> hello <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span> id <span style=color:#f92672>|</span> value <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>2</span> <span style=color:#f92672>|</span> hello <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+
+mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>update</span> tb1 <span style=color:#66d9ef>set</span> value<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;啦啦啦&#34;</span> <span style=color:#66d9ef>where</span> id<span style=color:#f92672>=</span><span style=color:#ae81ff>1</span>;
+<span style=color:#75715e># 无法修改，因为 mysql2 客户还未 commit 事务
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>update</span> tb1 <span style=color:#66d9ef>set</span> value<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;啦啦啦&#34;</span> <span style=color:#66d9ef>where</span> id<span style=color:#f92672>=</span><span style=color:#ae81ff>2</span>;
+ERROR <span style=color:#ae81ff>1205</span> (HY000): <span style=color:#66d9ef>Lock</span> wait timeout exceeded; try restarting transaction
+
+mysql2<span style=color:#f92672>&gt;</span> commit;
+mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+<span style=color:#f92672>+----+-----------+</span>
+<span style=color:#f92672>|</span> id <span style=color:#f92672>|</span> value     <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-----------+</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>1</span> <span style=color:#f92672>|</span> <span style=color:#960050;background-color:#1e0010>啦啦啦</span>    <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-----------+</span>
+
+<span style=color:#75715e># 成功修改了 mysql2 commit 的事务中的数据
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>update</span> tb1 <span style=color:#66d9ef>set</span> value<span style=color:#f92672>=</span><span style=color:#e6db74>&#34;幻读测试&#34;</span> <span style=color:#66d9ef>where</span> id<span style=color:#f92672>=</span><span style=color:#ae81ff>2</span>;
+
+<span style=color:#75715e># 产生了幻读：读到别的事务所插入的数据
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+<span style=color:#f92672>+----+--------------+</span>
+<span style=color:#f92672>|</span> id <span style=color:#f92672>|</span> value        <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+--------------+</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>1</span> <span style=color:#f92672>|</span> <span style=color:#960050;background-color:#1e0010>啦啦啦</span>       <span style=color:#f92672>|</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>2</span> <span style=color:#f92672>|</span> <span style=color:#960050;background-color:#1e0010>幻读测试</span>     <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+--------------+</span>
+</code></pre></div><p><strong>总结</strong>：相对上一级别，可以新增数据/更新数据，其它事务新增/删除数据是透明不可见的，在其它事务没有 commit 之前，不能修改其它事务所增加的数据，commit 后再去修改会产生幻读的问题。</p><h2 id=03-read-committed提交读不可重复读>03. READ COMMITTED（提交读，不可重复读）</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#75715e># 设置隔离级别
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level <span style=color:#66d9ef>read</span> committed;
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level <span style=color:#66d9ef>read</span> committed;
+<span style=color:#75715e># 开启事务
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> start transaction;
+mysql2<span style=color:#f92672>&gt;</span> start transaction;
+
+mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>);
+
+<span style=color:#75715e># 现在还没有
+</span><span style=color:#75715e></span>mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+Empty <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+
+mysql1<span style=color:#f92672>&gt;</span> commit;
+
+<span style=color:#75715e># commit 后可以读到
+</span><span style=color:#75715e></span>mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span> id <span style=color:#f92672>|</span> value <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>1</span> <span style=color:#f92672>|</span> hello <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+</code></pre></div><p><strong>总结</strong>：当一个事务 commit 修改后，那么另一个事务就可以读到所做的修改了。</p><h2 id=04-read-uncommitted未提交读>04. READ UNCOMMITTED（未提交读）</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#75715e># 设置隔离级别
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level <span style=color:#66d9ef>read</span> uncommitted;
+mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>set</span> session transaction isolation level <span style=color:#66d9ef>read</span> uncommitted;
+
+<span style=color:#75715e># 开启事务
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> start transaction;
+mysql2<span style=color:#f92672>&gt;</span> start transaction;
+
+<span style=color:#75715e># 此时还没有数据
+</span><span style=color:#75715e></span>mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+Empty <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+
+<span style=color:#75715e># 新增一条数据
+</span><span style=color:#75715e></span>mysql1<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>insert</span> <span style=color:#66d9ef>into</span> <span style=color:#a6e22e>tb1</span>(value) <span style=color:#66d9ef>values</span>(<span style=color:#e6db74>&#34;hello&#34;</span>);
+
+<span style=color:#75715e># 可以查到刚才新增的数据，注意：此时 mysql1 的事务还没有 commit
+</span><span style=color:#75715e></span>mysql2<span style=color:#f92672>&gt;</span> <span style=color:#66d9ef>select</span> <span style=color:#f92672>*</span> <span style=color:#66d9ef>from</span> tb1;
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span> id <span style=color:#f92672>|</span> value <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+<span style=color:#f92672>|</span>  <span style=color:#ae81ff>1</span> <span style=color:#f92672>|</span> hello <span style=color:#f92672>|</span>
+<span style=color:#f92672>+----+-------+</span>
+</code></pre></div><p><strong>总结</strong>：在一个事务内可以读到另一个事物还没有 commit 的修改。</p></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

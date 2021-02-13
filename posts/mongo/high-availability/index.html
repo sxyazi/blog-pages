@@ -1,0 +1,217 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>高可用 MongoDB | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>高可用 MongoDB
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-06-26T23:52:15+0800 class=date>Monday, June 26, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>MongoDB 是一个基于分布式文件存储的数据库。由 C++语言编写。旨在为 WEB 应用提供可扩展的高性能数据存储解决方案。</p><p>MongoDB 是一个介于关系数据库和非关系数据库之间的产品，是非关系数据库当中功能最丰富，最像关系数据库的。他支持的数据结构非常松散，是类似 json 的 bson 格式，因此可以存储比较复杂的数据类型。Mongo 最大的特点是他支持的查询语言非常强大，其语法有点类似于面向对象的查询语言，几乎可以实现类似关系数据库单表查询的绝大部分功能，而且还支持对数据建立索引。</p><h2 id=01-安装>01. 安装</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>apt-get install -y MongoDB
+root@hostker:~# mongo -version
+MongoDB shell version: 2.6.10
+</code></pre></div><h2 id=02-复制集replication>02. 复制集(Replication)</h2><p>建立复制集</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 创建测试目录</span>
+mkdir -p ~/mongo/17/data
+mkdir -p ~/mongo/18/data
+mkdir -p ~/mongo/19/data
+
+<span style=color:#75715e># 启动3个 mongo 实例, 指定复制集为 rs0</span>
+mongod --port <span style=color:#ae81ff>27017</span> --fork --dbpath ~/mongo/17/data --logpath ~/mongo/17/log --replSet rs0
+mongod --port <span style=color:#ae81ff>27018</span> --fork --dbpath ~/mongo/18/data --logpath ~/mongo/18/log --replSet rs0
+mongod --port <span style=color:#ae81ff>27019</span> --fork --dbpath ~/mongo/19/data --logpath ~/mongo/19/log --replSet rs0
+</code></pre></div><p>连接 27017, 让他成为 primary</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>mongo --port <span style=color:#ae81ff>27017</span>
+
+<span style=color:#75715e># 初始化后默认是primary</span>
+rs.initiate<span style=color:#f92672>()</span>
+
+<span style=color:#75715e># 添加其他实例</span>
+rs.add<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;hostker:27018&#34;</span><span style=color:#f92672>)</span>
+rs.add<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;hostker:27019&#34;</span><span style=color:#f92672>)</span>
+
+<span style=color:#75715e># 最后可以看下状态</span>
+rs.status<span style=color:#f92672>()</span>
+</code></pre></div><p>测试</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 27017(primary)</span>
+rs0:PRIMARY&gt; use test
+rs0:PRIMARY&gt; db.col.insert<span style=color:#f92672>({</span>a:1<span style=color:#f92672>})</span>
+rs0:PRIMARY&gt; db.col.find<span style=color:#f92672>()</span>
+<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594e97394e0d2bf375f8efe3&#34;</span><span style=color:#f92672>)</span>, <span style=color:#e6db74>&#34;a&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span>
+
+<span style=color:#75715e># 27018(secondary)</span>
+rs0:SECONDARY&gt; show dbs
+admin  <span style=color:#f92672>(</span>empty<span style=color:#f92672>)</span>
+local  1.078GB
+test   0.078GB
+
+rs0:SECONDARY&gt; use test
+
+rs0:SECONDARY&gt; db.col.find<span style=color:#f92672>()</span>
+error: <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;</span>$err<span style=color:#e6db74>&#34;</span> : <span style=color:#e6db74>&#34;not master and slaveOk=false&#34;</span>, <span style=color:#e6db74>&#34;code&#34;</span> : <span style=color:#ae81ff>13435</span> <span style=color:#f92672>}</span>
+rs0:SECONDARY&gt; rs.slaveOk<span style=color:#f92672>()</span>  <span style=color:#75715e># 设置slaveOk后才能查询数据</span>
+
+rs0:SECONDARY&gt; db.col.find<span style=color:#f92672>()</span>
+<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594e97394e0d2bf375f8efe3&#34;</span><span style=color:#f92672>)</span>, <span style=color:#e6db74>&#34;a&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span>
+</code></pre></div><h2 id=03-分片sharding>03. 分片(Sharding)</h2><h3 id=自动分配>自动分配</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 创建测试目录</span>
+mkdir -p ~/mongo/17/data
+mkdir -p ~/mongo/18/data
+mkdir -p ~/mongo/19/data
+mkdir -p ~/mongo/20
+
+<span style=color:#75715e># 启动2台片服务器, 1台config服务器, 1台mongos服务器</span>
+mongod --port <span style=color:#ae81ff>27017</span> --fork --dbpath ~/mongo/17/data --logpath ~/mongo/17/log
+mongod --port <span style=color:#ae81ff>27018</span> --fork --dbpath ~/mongo/18/data --logpath ~/mongo/18/log
+mongod --port <span style=color:#ae81ff>27019</span> --fork --dbpath ~/mongo/19/data --logpath ~/mongo/19/log --configsvr
+mongos --port <span style=color:#ae81ff>27020</span> --fork --configdb 127.0.0.1:27019 --logpath ~/mongo/20/log
+</code></pre></div><p>连接上 mongos 服务器</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>mongo --port <span style=color:#ae81ff>27020</span>
+
+<span style=color:#75715e># 把刚才启动的片节点加进来</span>
+mongos&gt; sh.addShard<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;127.0.0.1:27017&#34;</span><span style=color:#f92672>)</span>
+mongos&gt; sh.addShard<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;127.0.0.1:27018&#34;</span><span style=color:#f92672>)</span>
+
+<span style=color:#75715e># 然后查看一下当前的状态</span>
+mongos&gt; sh.status<span style=color:#f92672>()</span>
+--- Sharding Status ---
+  sharding version: <span style=color:#f92672>{</span>
+	<span style=color:#e6db74>&#34;_id&#34;</span> : 1,
+	<span style=color:#e6db74>&#34;version&#34;</span> : 4,
+	<span style=color:#e6db74>&#34;minCompatibleVersion&#34;</span> : 4,
+	<span style=color:#e6db74>&#34;currentVersion&#34;</span> : 5,
+	<span style=color:#e6db74>&#34;clusterId&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594eb27ebdf1f833f0200aae&#34;</span><span style=color:#f92672>)</span>
+<span style=color:#f92672>}</span>
+  shards:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27017&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27018&#34;</span> <span style=color:#f92672>}</span>
+  databases:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;admin&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;config&#34;</span> <span style=color:#f92672>}</span>
+</code></pre></div><p>配置要分片的 库 和 表</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 设置 test 库分片</span>
+sh.enableSharding<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;test&#34;</span><span style=color:#f92672>)</span>
+
+<span style=color:#75715e># 设置 test 库 col 表按照 _id 字段分片</span>
+sh.shardCollection<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;test.col&#34;</span>, <span style=color:#f92672>{</span>_id: 1<span style=color:#f92672>})</span>
+</code></pre></div><p>测试</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 在 mongos 添加数据</span>
+mongos&gt; use test
+mongos&gt; db.col.insert<span style=color:#f92672>({</span>a:1<span style=color:#f92672>})</span>
+WriteResult<span style=color:#f92672>({</span> <span style=color:#e6db74>&#34;nInserted&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>})</span>
+
+<span style=color:#75715e># 片1：</span>
+mongo --port <span style=color:#ae81ff>27017</span>
+&gt; show dbs
+admin  <span style=color:#f92672>(</span>empty<span style=color:#f92672>)</span>
+local  0.078GB
+test   0.078GB
+
+&gt; use test
+&gt; db.col.find<span style=color:#f92672>()</span>
+<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594ebbfcdf4fba225800a60f&#34;</span><span style=color:#f92672>)</span>, <span style=color:#e6db74>&#34;a&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span>
+
+
+<span style=color:#75715e># 片2: 发现并没有test库, 说明数据只放到了 片1 中</span>
+mongo --port <span style=color:#ae81ff>27018</span>
+&gt; show dbs
+admin  <span style=color:#f92672>(</span>empty<span style=color:#f92672>)</span>
+local  0.078GB
+</code></pre></div><p>修改默认片大小</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>mongos&gt; use config
+mongos&gt; db.settings.find<span style=color:#f92672>()</span>
+<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;chunksize&#34;</span>, <span style=color:#e6db74>&#34;value&#34;</span> : <span style=color:#ae81ff>64</span> <span style=color:#f92672>}</span>   <span style=color:#75715e># 默认 64M</span>
+
+db.settings.update<span style=color:#f92672>({</span>_id: <span style=color:#e6db74>&#34;chunksize&#34;</span><span style=color:#f92672>}</span>, <span style=color:#f92672>{</span>$set: <span style=color:#f92672>{</span>value: 1<span style=color:#f92672>}})</span>
+</code></pre></div><p>插入数据</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 插入数据之前：</span>
+mongos&gt; sh.status<span style=color:#f92672>()</span>
+--- Sharding Status ---
+  sharding version: <span style=color:#f92672>{</span>
+	<span style=color:#e6db74>&#34;_id&#34;</span> : 1,
+	<span style=color:#e6db74>&#34;version&#34;</span> : 4,
+	<span style=color:#e6db74>&#34;minCompatibleVersion&#34;</span> : 4,
+	<span style=color:#e6db74>&#34;currentVersion&#34;</span> : 5,
+	<span style=color:#e6db74>&#34;clusterId&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594eb27ebdf1f833f0200aae&#34;</span><span style=color:#f92672>)</span>
+<span style=color:#f92672>}</span>
+  shards:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27017&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27018&#34;</span> <span style=color:#f92672>}</span>
+  databases:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;admin&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;config&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;test&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : true,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span> <span style=color:#f92672>}</span>
+		test.col
+			shard key: <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span>
+			chunks:
+				shard0000	<span style=color:#ae81ff>1</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;</span>$minKey<span style=color:#e6db74>&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;</span>$maxKey<span style=color:#e6db74>&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>1, 0<span style=color:#f92672>)</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;setting&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span> <span style=color:#f92672>}</span>
+
+
+<span style=color:#75715e># 添加数据</span>
+<span style=color:#66d9ef>for</span><span style=color:#f92672>(</span>var i<span style=color:#f92672>=</span>1; i&lt;<span style=color:#f92672>=</span>50000; i++<span style=color:#f92672>)</span> db.col.insert<span style=color:#f92672>({</span>_id: i, val: <span style=color:#e6db74>&#34;aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa&#34;</span><span style=color:#f92672>})</span>
+
+
+<span style=color:#75715e># 插入 5W 条数据后：</span>
+mongos&gt; sh.status<span style=color:#f92672>()</span>
+--- Sharding Status ---
+  sharding version: <span style=color:#f92672>{</span>
+	<span style=color:#e6db74>&#34;_id&#34;</span> : 1,
+	<span style=color:#e6db74>&#34;version&#34;</span> : 4,
+	<span style=color:#e6db74>&#34;minCompatibleVersion&#34;</span> : 4,
+	<span style=color:#e6db74>&#34;currentVersion&#34;</span> : 5,
+	<span style=color:#e6db74>&#34;clusterId&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594eb27ebdf1f833f0200aae&#34;</span><span style=color:#f92672>)</span>
+<span style=color:#f92672>}</span>
+  shards:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27017&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27018&#34;</span> <span style=color:#f92672>}</span>
+  databases:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;admin&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;config&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;test&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : true,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span> <span style=color:#f92672>}</span>
+		test.col
+			shard key: <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span>
+			chunks:
+				shard0001	<span style=color:#ae81ff>8</span>
+				shard0000	<span style=color:#ae81ff>8</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;</span>$minKey<span style=color:#e6db74>&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>2, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>5761</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>4, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>5761</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>10280</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>5, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>10280</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>14051</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>6, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>14051</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>17500</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>7, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>17500</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>20756</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>8, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>20756</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>23840</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>9, 0<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>23840</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>26752</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>9, 1<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>26752</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>29585</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>6, 2<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>29585</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>32403</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>6, 4<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>32403</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>35162</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>6, 6<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>35162</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>37892</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>6, 8<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>37892</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>40566</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>6, 10<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>40566</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>43213</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>7, 2<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>43213</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594ebbfcdf4fba225800a60f&#34;</span><span style=color:#f92672>)</span> <span style=color:#f92672>}</span> on : shard0000 Timestamp<span style=color:#f92672>(</span>7, 3<span style=color:#f92672>)</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : ObjectId<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;594ebbfcdf4fba225800a60f&#34;</span><span style=color:#f92672>)</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;</span>$maxKey<span style=color:#e6db74>&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> on : shard0001 Timestamp<span style=color:#f92672>(</span>3, 0<span style=color:#f92672>)</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;setting&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span> <span style=color:#f92672>}</span>
+
+</code></pre></div><h3 id=预先分配数据>预先分配数据</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 查看片状态</span>
+mongos&gt; sh.status<span style=color:#f92672>()</span>
+--- Sharding Status ---
+  sharding version: <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : 1, <span style=color:#e6db74>&#34;version&#34;</span> : <span style=color:#ae81ff>3</span> <span style=color:#f92672>}</span>
+  shards:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27017&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27018&#34;</span> <span style=color:#f92672>}</span>
+  databases:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;admin&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;config&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;test&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : true,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span> <span style=color:#f92672>}</span>
+		test.col chunks:
+				shard0000	<span style=color:#ae81ff>1</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> $minKey : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> $maxKey : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> on : shard0000 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 1000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span>
+
+<span style=color:#75715e># 添加10条记录</span>
+<span style=color:#66d9ef>for</span><span style=color:#f92672>(</span>var i<span style=color:#f92672>=</span>1; i&lt;<span style=color:#f92672>=</span>10; i++<span style=color:#f92672>)</span> sh.splitAt<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;test.col&#34;</span>, <span style=color:#f92672>{</span>_id: i*10<span style=color:#f92672>})</span>
+
+<span style=color:#75715e># 再次查看状态, 已经均匀的散落在2个片节点上</span>
+mongos&gt; sh.status<span style=color:#f92672>()</span>
+--- Sharding Status ---
+  sharding version: <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : 1, <span style=color:#e6db74>&#34;version&#34;</span> : <span style=color:#ae81ff>3</span> <span style=color:#f92672>}</span>
+  shards:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27017&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;shard0001&#34;</span>,  <span style=color:#e6db74>&#34;host&#34;</span> : <span style=color:#e6db74>&#34;127.0.0.1:27018&#34;</span> <span style=color:#f92672>}</span>
+  databases:
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;admin&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : false,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;config&#34;</span> <span style=color:#f92672>}</span>
+	<span style=color:#f92672>{</span>  <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#e6db74>&#34;test&#34;</span>,  <span style=color:#e6db74>&#34;partitioned&#34;</span> : true,  <span style=color:#e6db74>&#34;primary&#34;</span> : <span style=color:#e6db74>&#34;shard0000&#34;</span> <span style=color:#f92672>}</span>
+		test.col chunks:
+				shard0001	<span style=color:#ae81ff>5</span>
+				shard0000	<span style=color:#ae81ff>5</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> $minKey : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>10</span> <span style=color:#f92672>}</span> on : shard0001 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 2000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>10</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>20</span> <span style=color:#f92672>}</span> on : shard0001 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 3000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>20</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>30</span> <span style=color:#f92672>}</span> on : shard0001 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 4000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>30</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>40</span> <span style=color:#f92672>}</span> on : shard0001 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 5000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>40</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>50</span> <span style=color:#f92672>}</span> on : shard0001 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 6000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>0</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>50</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>60</span> <span style=color:#f92672>}</span> on : shard0000 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 6000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>60</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>70</span> <span style=color:#f92672>}</span> on : shard0000 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 1000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>13</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>70</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>80</span> <span style=color:#f92672>}</span> on : shard0000 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 1000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>15</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>80</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>100</span> <span style=color:#f92672>}</span> on : shard0000 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 2000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>2</span> <span style=color:#f92672>}</span>
+			<span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#ae81ff>100</span> <span style=color:#f92672>}</span> --&gt;&gt; <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;_id&#34;</span> : <span style=color:#f92672>{</span> $maxKey : <span style=color:#ae81ff>1</span> <span style=color:#f92672>}</span> <span style=color:#f92672>}</span> on : shard0000 <span style=color:#f92672>{</span> <span style=color:#e6db74>&#34;t&#34;</span> : 2000, <span style=color:#e6db74>&#34;i&#34;</span> : <span style=color:#ae81ff>3</span> <span style=color:#f92672>}</span>
+</code></pre></div></div><div class=post-meta><ul class=tags><li><a href=/tags/mongodb>MongoDB</a></li></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

@@ -1,0 +1,102 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Webpack 工具简单使用 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Webpack 工具简单使用
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-04-08T08:02:37+0800 class=date>Saturday, April 8, 2017</time></h1></header><section id=main><article class=post><div class=post-content><blockquote><p><a href=https://github.com/webpack/webpack>Webpack</a> 是当下最热门的前端资源模块化管理和打包工具。它可以将许多松散的模块按照依赖和规则打包成符合生产环境部署的前端资源。还可以将按需加载的模块进行代码分隔，等到实际需要的时候再异步加载。通过 <code>loader</code> 的转换，任何形式的资源都可以视作模块，比如 CommonJs 模块、 AMD 模块、 ES6 模块、CSS、图片、 JSON、Coffeescript、 LESS 等。</p></blockquote><h2 id=创建-packagejson-文件>创建 package.json 文件</h2><p>首先，先在项目目录下面创建 package.json 文件，package.json 文件中定义了项目的相关信息，以及他所依赖于哪些模块。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>yarn init
+</code></pre></div><p>执行上面的指令后，会提示你输入项目的相关信息，根据所给出的相关提示输入即可。</p><h2 id=安装-webpack>安装 Webpack</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash><span style=color:#75715e># 安装到全局</span>
+yarn global add webpack
+
+<span style=color:#75715e># 安装到当前项目</span>
+yarn add -D webpack
+</code></pre></div><p>执行指令安装时，若提示没权限，那么前面加个 <code>sudo</code>，或者切换到权限较高的账户下安装。</p><p>还有一点注意的是，如果没有安装到全局，那么文章下面所有带 <code>webpack</code> 指令的，都应该换成</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>node_modules/.bin/webpack
+</code></pre></div><p>当然也有其他方法，那就是通过修改 <code>package.json</code> 文件，在 <code>scripts</code> 块中添加 <code>"start": "webpack"</code></p><p><img src=/images/webpack/npm-scripts.png alt></p><p>然后下文的 <code>webpack</code> 替换为</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>yarn start
+</code></pre></div><h2 id=简单使用一下>简单使用一下</h2><p>创建一个叫 <code>test</code> 的目录用于测试，之后里面新建两个文件，文件名分别为 <code>hello.js</code> <code>main.js</code></p><p>其中 <code>hello.js</code> 的目的用于测试，而 <code>main.js</code> 则是作为程序的入口，引入 <code>hello.js</code> 文件。</p><p><strong>hello.js</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>alert</span>(<span style=color:#e6db74>&#39;hello world!&#39;</span>)
+</code></pre></div><p><strong>main.js</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;./hello&#39;</span>)
+</code></pre></div><p>然后执行下面的指令：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>webpack test/main.js ./build.js
+</code></pre></div><p><img src=/images/webpack/build.png alt></p><p>上面的指令通过我刚才创建的 <code>test</code> 目录中的 <code>main.js</code> 文件在项目目录下生成了一个 <code>build.js</code> 文件。</p><p>接着创建一个 html 文件，引入刚才所生成的那个 <code>build.js</code> 文件。</p><p><strong>test.html</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html>&lt;<span style=color:#f92672>script</span> <span style=color:#a6e22e>src</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;./build.js&#34;</span>&gt;&lt;/<span style=color:#f92672>script</span>&gt;
+</code></pre></div><p>在浏览器打开 <code>test.html</code> 文件后。可以看到执行了 <code>test.js</code> 文件中的内容，弹出了 <strong>hello world</strong> 的提示框。</p><h2 id=使用-webpack-配置>使用 Webpack 配置</h2><p>每次都要在终端去敲那么长的指令，很麻烦有木有。那么现在我可以使用 Webpack 的配置来简化一下流程。</p><p>在项目目录创建一个叫做 <code>webpack.config.js</code> 的文件，没错这个就是 Webpack 的配置文件的名字了。</p><p>在里面写入下面的内容：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>module</span>.<span style=color:#a6e22e>exports</span> <span style=color:#f92672>=</span> {
+  <span style=color:#75715e>// 入口文件
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>entry</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#39;/test/main.js&#39;</span>,
+  <span style=color:#a6e22e>output</span><span style=color:#f92672>:</span> {
+    <span style=color:#75715e>// 生成的文件所在目录
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>path</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span>,
+    <span style=color:#75715e>// 生成的文件的名字
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>filename</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;build.js&#39;</span>,
+  },
+}
+</code></pre></div><p>其中 <code>__dirname</code> 代表的是项目目录。他是在 node.js 中所提供的一个全局变量。</p><p>然后在终端执行：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>webpack
+</code></pre></div><p>同样可以达到相同生成的效果，只不过是输入的指令更简短一些了。</p><h2 id=webpack-中的-json-loader>Webpack 中的 JSON Loader</h2><p>通过 Loaders 可以使 Webpack 对各种类型的文件进行处理。Loader 需要手动安装并配置在 <code>webpack.config.js</code> 文件中的 <code>module</code> 块下。下面我将使用 JSON Loader 处理 JSON 文件。</p><h3 id=安装>安装</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>yarn add -D json-loader
+</code></pre></div><h3 id=配置>配置</h3><p>这里有几个可用的配置项参考：</p><ul><li><code>test</code>：文件名匹配正则（必选）</li><li><code>loader</code>：loader 名（必选）</li><li><code>query</code>：额外设置选项（可选）</li><li><code>include</code>：手动指定必须处理的文件或文件夹（可选）</li><li><code>exclude</code>：手动指定不要处理的文件或文件夹（可选）</li></ul><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>module</span>.<span style=color:#a6e22e>exports</span> <span style=color:#f92672>=</span> {
+  <span style=color:#75715e>// 入口文件
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>entry</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#39;/test/main.js&#39;</span>,
+  <span style=color:#a6e22e>output</span><span style=color:#f92672>:</span> {
+    <span style=color:#75715e>// 生成的文件所在目录
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>path</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span>,
+    <span style=color:#75715e>// 生成的文件的名字
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>filename</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;build.js&#39;</span>,
+  },
+  <span style=color:#75715e>// 添加module块
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>module</span><span style=color:#f92672>:</span> {
+    <span style=color:#a6e22e>loaders</span><span style=color:#f92672>:</span> [
+      {
+        <span style=color:#a6e22e>test</span><span style=color:#f92672>:</span> <span style=color:#e6db74>/\.json$/</span>,
+        <span style=color:#a6e22e>loader</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;json-loader&#39;</span>,
+      },
+      <span style=color:#75715e>// ...
+</span><span style=color:#75715e></span>    ],
+  },
+}
+</code></pre></div><h3 id=使用>使用</h3><p>将 <code>test</code> 目录下面的 <code>hello.js</code> 文件重命名为 <code>hello.json</code>，并修改内容如下：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-json data-lang=json>{
+  <span style=color:#f92672>&#34;balbal&#34;</span>: <span style=color:#e6db74>&#34;hello world!&#34;</span>
+}
+</code></pre></div><p>再修改 <code>test/main.js</code> 入口文件的内容：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>var</span> <span style=color:#a6e22e>hello</span> <span style=color:#f92672>=</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;./hello&#39;</span>)
+<span style=color:#a6e22e>alert</span>(<span style=color:#a6e22e>hello</span>.<span style=color:#a6e22e>balbal</span>)
+</code></pre></div><p>执行 <code>webpack</code>，打开项目目录下的 <code>test.html</code> 文件，可以看到弹出了 <code>hello world!</code></p><hr><p>上面就完成了对 JSON 文件的打包，接下来说下对 CSS 文件的打包。</p><h2 id=webpack-中的-css-loader>Webpack 中的 CSS Loader</h2><h3 id=安装-1>安装</h3><p>对 CSS 文件打包，依赖 2 个 loader，第一个 <code>css-loader</code> 是对 CSS 文件中的 <code>url(..)</code> 进行处理。第二个 <code>style-loader</code> 是将 CSS 放到页面中。这里需要两个配合使用，先处理掉 <code>url()</code>，然后再把 <strong>处理后</strong> 的内容加入到页面中。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>yarn add -D css-loader style-loader
+</code></pre></div><h3 id=配置-1>配置</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>module</span>.<span style=color:#a6e22e>exports</span> <span style=color:#f92672>=</span> {
+  <span style=color:#75715e>// 入口文件
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>entry</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#39;/test/main.js&#39;</span>,
+  <span style=color:#a6e22e>output</span><span style=color:#f92672>:</span> {
+    <span style=color:#75715e>// 生成的文件所在目录
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>path</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span>,
+    <span style=color:#75715e>// 生成的文件的名字
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>filename</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;build.js&#39;</span>,
+  },
+  <span style=color:#75715e>// 添加module块
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>module</span><span style=color:#f92672>:</span> {
+    <span style=color:#a6e22e>loaders</span><span style=color:#f92672>:</span> [
+      {
+        <span style=color:#a6e22e>test</span><span style=color:#f92672>:</span> <span style=color:#e6db74>/\.css$/</span>,
+        <span style=color:#a6e22e>loader</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;style-loader!css-loader&#39;</span>,
+      },
+    ],
+  },
+}
+</code></pre></div><p>需要注意的地方是：多个 loader 中间我使用 <code>!</code> 分隔开了。在 Webpack 读取配置的时候，会 <strong>依次</strong> 读取到 <code>css-loader</code> <code>style-loader</code> (从右往左)，所以执行时也是先 css 再 style。</p><h3 id=使用-1>使用</h3><p>配置完成之后，就剩下测试了，把 <code>test/hello.json</code> 文件改名为 <code>hello.css</code>，并修改内容：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-css data-lang=css><span style=color:#f92672>body</span> {
+  <span style=color:#66d9ef>background</span>: <span style=color:#66d9ef>yellow</span>;
+}
+</code></pre></div><p>再把 <code>test/main.js</code> 中的内容修改为：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;./hello.css&#39;</span>)
+</code></pre></div><p>执行 <code>webpack</code>，然后打开项目目录下的 <code>test.html</code> 文件，整个页面变黄了。</p><h2 id=webpack-中的-plugin>Webpack 中的 Plugin</h2><p>再介绍一下 Webpack 里面的插件。其实 Plugin 与 Loader 都差不多，他们两个最大区别应该是分工不同。Loader 的作用已经知道了，是对比如 JS 文件 CSS 文件 JSON 文件这些打包的，而 Plugin 是干嘛的，我写个例子来看下。</p><p>这里以 <code>UglifyJsPlugin</code> 这个插件来介绍，用它我可以对生成的 <code>build.js</code> 文件压缩。</p><h3 id=配置-2>配置</h3><p>插件的配置依然是放在 <code>webpack.config.js</code> 文件中，插件的信息放在 <code>plugins</code> 块中。</p><p>修改 <code>webpack.config.js</code> 文件的内容为：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>module</span>.<span style=color:#a6e22e>exports</span> <span style=color:#f92672>=</span> {
+  <span style=color:#75715e>// 入口文件
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>entry</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span> <span style=color:#f92672>+</span> <span style=color:#e6db74>&#39;/test/main.js&#39;</span>,
+  <span style=color:#a6e22e>output</span><span style=color:#f92672>:</span> {
+    <span style=color:#75715e>// 生成的文件所在目录
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>path</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>__dirname</span>,
+    <span style=color:#75715e>// 生成的文件的名字
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>filename</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;build.js&#39;</span>,
+  },
+  <span style=color:#75715e>// 添加module块
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>module</span><span style=color:#f92672>:</span> {
+    <span style=color:#a6e22e>loaders</span><span style=color:#f92672>:</span> [
+      {
+        <span style=color:#a6e22e>test</span><span style=color:#f92672>:</span> <span style=color:#e6db74>/\.css$/</span>,
+        <span style=color:#a6e22e>loader</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;style-loader!css-loader&#39;</span>,
+      },
+    ],
+  },
+  <span style=color:#75715e>// 添加plugin块
+</span><span style=color:#75715e></span>  <span style=color:#a6e22e>plugins</span><span style=color:#f92672>:</span> [<span style=color:#66d9ef>new</span> (<span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;webpack&#39;</span>).<span style=color:#a6e22e>optimize</span>.<span style=color:#a6e22e>UglifyJsPlugin</span>)()],
+}
+</code></pre></div><p>所有插件均写在 <code>plugins</code> 块中。以数组的形式来表示。由于我所使用的 <code>UglifyJsPlugin</code> 插件是 Webpack 带的，所以在使用前需要引入 <code>webpack</code> 这个对象，我使用 <code>require()</code> 函数将其引入。</p><h3 id=使用-2>使用</h3><p>在 <code>test</code> 文件夹内，新建 <code>word.js</code> 文件，内容为：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#66d9ef>for</span> (<span style=color:#66d9ef>var</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> <span style=color:#f92672>&lt;</span> <span style=color:#ae81ff>10</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span>) {
+  document.<span style=color:#a6e22e>write</span>(<span style=color:#e6db74>&#39;我是word.js&#39;</span>)
+}
+</code></pre></div><p>修改 <code>test/main.js</code> 中的内容为：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;./word&#39;</span>)
+<span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;./hello.css&#39;</span>)
+</code></pre></div><p>执行 <code>webpack</code> 指令，查看一下 <code>build.js</code> 文件已经被压缩了。</p></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

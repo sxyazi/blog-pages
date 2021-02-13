@@ -1,0 +1,40 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>MySQL 主从配置 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>MySQL 主从配置
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-05-08T01:45:06+0800 class=date>Monday, May 8, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>上篇文章，把 MySQL 服务环境搭建好了，这篇文章来写一下 MySQL 主从配置。</p><h2 id=01-修改-mysql-配置文件>01. 修改 MySQL 配置文件</h2><p><strong>my.master.cnf：</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-ini data-lang=ini><span style=color:#66d9ef>[mysqld]</span>
+<span style=color:#a6e22e>log-bin</span>          <span style=color:#f92672>=</span> <span style=color:#e6db74>mysql-bin  # 二进制日志文件名</span>
+<span style=color:#a6e22e>server-id</span>        <span style=color:#f92672>=</span> <span style=color:#e6db74>1          # 服务器ID</span>
+<span style=color:#a6e22e>expire-logs-days</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>7          # (可选) 日志有效期[天]</span>
+<span style=color:#a6e22e>replicate-do-db</span>  <span style=color:#f92672>=</span> <span style=color:#e6db74>test       # (可选) 要复制的数据库</span>
+<span style=color:#a6e22e>binlog-ignore-db</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>mysql      # (可选) 忽略的数据库</span>
+<span style=color:#a6e22e>binlog-ignore-db</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>information_schema</span>
+</code></pre></div><p><strong>my.slave.cnf：</strong></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-ini data-lang=ini><span style=color:#66d9ef>[mysqld]</span>
+<span style=color:#a6e22e>log-bin</span>                <span style=color:#f92672>=</span> <span style=color:#e6db74>mysql-bin   # (可选) 二进制日志文件名</span>
+<span style=color:#a6e22e>server-id</span>              <span style=color:#f92672>=</span> <span style=color:#e6db74>2           # 服务器ID</span>
+<span style=color:#a6e22e>replicate-do-db</span>        <span style=color:#f92672>=</span> <span style=color:#e6db74>test        # (可选) 要复制的数据库</span>
+<span style=color:#a6e22e>binlog-ignore-db</span>       <span style=color:#f92672>=</span> <span style=color:#e6db74>mysql       # (可选) 忽略的数据库</span>
+<span style=color:#a6e22e>replicate-ignore-table</span> <span style=color:#f92672>=</span> <span style=color:#e6db74>mysql.user  # (可选) 忽略的表</span>
+<span style=color:#a6e22e>read_only</span>              <span style=color:#f92672>=</span> <span style=color:#e6db74>1           # 只读</span>
+</code></pre></div><h2 id=02-启动主从服务>02. 启动主从服务</h2><p>登入到 Master，执行：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#75715e># 授权 alh@192.168.2.103, 密码为 abcd1234
+</span><span style=color:#75715e></span><span style=color:#66d9ef>grant</span> replication slave <span style=color:#66d9ef>on</span> <span style=color:#f92672>*</span>.<span style=color:#f92672>*</span> <span style=color:#66d9ef>to</span> <span style=color:#e6db74>&#39;alh&#39;</span><span style=color:#f92672>@</span><span style=color:#e6db74>&#39;192.168.2.103&#39;</span> <span style=color:#66d9ef>identified</span> <span style=color:#66d9ef>by</span> <span style=color:#e6db74>&#39;abcd1234&#39;</span>;
+<span style=color:#66d9ef>flush</span> <span style=color:#66d9ef>privileges</span>;
+</code></pre></div><p>查看 Master 的状态</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#66d9ef>show</span> master status;
+
+<span style=color:#f92672>+------------------+----------+--------------+--------------------------+</span>
+<span style=color:#f92672>|</span> File             <span style=color:#f92672>|</span> Position <span style=color:#f92672>|</span> Binlog_Do_DB <span style=color:#f92672>|</span> Binlog_Ignore_DB         <span style=color:#f92672>|</span>
+<span style=color:#f92672>+------------------+----------+--------------+--------------------------+</span>
+<span style=color:#f92672>|</span> mysql<span style=color:#f92672>-</span>bin.<span style=color:#ae81ff>000001</span> <span style=color:#f92672>|</span>      <span style=color:#ae81ff>245</span> <span style=color:#f92672>|</span>              <span style=color:#f92672>|</span> mysql,information_schema <span style=color:#f92672>|</span>
+<span style=color:#f92672>+------------------+----------+--------------+--------------------------+</span>
+<span style=color:#ae81ff>1</span> row <span style=color:#66d9ef>in</span> <span style=color:#66d9ef>set</span> (<span style=color:#ae81ff>0</span>.<span style=color:#ae81ff>00</span> sec)
+</code></pre></div><hr><p>然后切换到 Slave，执行：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#66d9ef>change</span> master <span style=color:#66d9ef>to</span>
+master_host     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;192.168.2.103&#39;</span>,    <span style=color:#75715e># Master的IP
+</span><span style=color:#75715e></span>master_user     <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;alh&#39;</span>,              <span style=color:#75715e># 刚才授权的账号
+</span><span style=color:#75715e></span>master_password <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;abcd1234&#39;</span>,         <span style=color:#75715e># 刚才授权账号的密码
+</span><span style=color:#75715e></span>master_log_file <span style=color:#f92672>=</span> <span style=color:#e6db74>&#39;mysql-bin.000001&#39;</span>, <span style=color:#75715e># 上面状态中的 `File` 字段
+</span><span style=color:#75715e></span>master_log_pos  <span style=color:#f92672>=</span> <span style=color:#ae81ff>245</span>;                <span style=color:#75715e># 上面状态中的 `Position` 字段
+</span></code></pre></div><p>启动 Slave</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql>start slave;
+<span style=color:#75715e>#stop slave  # 终止Slave
+</span></code></pre></div><p>最后，查看状态是否正常</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-mysql data-lang=mysql><span style=color:#66d9ef>show</span> slave status <span style=color:#960050;background-color:#1e0010>\</span>G
+
+Slave_IO_Running:　Yes
+Slave_SQL_Running:　Yes
+</code></pre></div></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

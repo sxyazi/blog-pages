@@ -1,0 +1,497 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Flex 弹性盒模型 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Flex 弹性盒模型
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-04-30T02:11:12+0800 class=date>Sunday, April 30, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>Flex 是一种布局方案。相对于传统的布局方式（浮动 + 定位），Flex 布局具有了「弹性」。这也使得在布局时更加的灵活方便了。</p><h2 id=01-使用-flex>01. 使用 Flex</h2><p>给一个元素加上 <code>display: flex</code> 即可指定使用 flex 布局。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-css data-lang=css><span style=color:#f92672>div</span> {
+  <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+}
+
+<span style=color:#f92672>span</span> {
+  <span style=color:#75715e>/* 内联元素使用 inline-flex */</span>
+  <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>inline</span><span style=color:#f92672>-</span><span style=color:#66d9ef>flex</span>;
+}
+</code></pre></div><h2 id=02-一些概念>02. 一些概念</h2><p><strong>容器</strong>：被加上 <code>display: flex</code> 的元素叫做容器。</p><p><strong>项目</strong>：在 容器 中的元素叫做项目。</p><p><strong>主轴(main axis)</strong>：默认是水平的，从左到右的。见下图 <code>main start</code> 到 <code>main end</code> 。</p><p><strong>交叉轴(cross axis)</strong>：默认是垂直的，从上到下的。见下图 <code>cross start</code> 到 <code>cross end</code> 。</p><p><img src=/images/flex/overview.jpg alt></p><h2 id=03-容器选项>03. 容器选项</h2><h3 id=flex-direction-设置主轴的方向>flex-direction: 设置主轴的方向</h3><ul><li><strong>row</strong>：(默认) 从左到右</li><li><strong>row-reverse</strong>：从右到左</li><li><strong>column</strong>：从上往下</li><li><strong>column-reverse</strong>：从下往上</li></ul><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;utf-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>ul</span> {
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>padding</span>: <span style=color:#ae81ff>10</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>list-style</span>: <span style=color:#66d9ef>none</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#e0efff</span>;
+      }
+      <span style=color:#f92672>li</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>50</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>50</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>50</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>margin-right</span>: <span style=color:#ae81ff>4</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>margin-bottom</span>: <span style=color:#ae81ff>4</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#66d9ef>gray</span>;
+      }
+
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-direction</span>: <span style=color:#66d9ef>row</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-direction</span>: <span style=color:#66d9ef>row</span><span style=color:#f92672>-</span><span style=color:#66d9ef>reverse</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>200</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>flex-direction</span>: <span style=color:#66d9ef>column</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>4</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>200</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>flex-direction</span>: <span style=color:#66d9ef>column</span><span style=color:#f92672>-</span><span style=color:#66d9ef>reverse</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-direction: row&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-direction: row-reverse&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-direction: column&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-direction: column-reverse&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/flex-direction.png alt></p><h3 id=flex-wrap-设置换行方式>flex-wrap: 设置换行方式</h3><ul><li><strong>nowrap</strong>：(默认) 不换行</li><li><strong>wrap</strong>：换行</li><li><strong>wrap-reverse</strong>：换行反向</li></ul><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;utf-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>ul</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>300</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>padding</span>: <span style=color:#ae81ff>10</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>list-style</span>: <span style=color:#66d9ef>none</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#e0efff</span>;
+      }
+      <span style=color:#f92672>li</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>margin-right</span>: <span style=color:#ae81ff>4</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>margin-bottom</span>: <span style=color:#ae81ff>4</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#66d9ef>gray</span>;
+      }
+
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-wrap</span>: <span style=color:#66d9ef>nowrap</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-wrap</span>: <span style=color:#66d9ef>wrap</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-wrap</span>: <span style=color:#66d9ef>wrap</span><span style=color:#f92672>-</span><span style=color:#66d9ef>reverse</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-wrap: nowrap&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;e&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-wrap: wrap&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;e&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;flex-wrap: wrap-reverse&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;e&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/flex-wrap.png alt></p><h3 id=flex-flow-同时设置-flex-direction-与-flex-wrap>flex-flow: 同时设置 <code>flex-direction</code> 与 <code>flex-wrap</code></h3><ul><li>可被设置的值具体参考 <code>flex-direction</code> 与 <code>flex-wrap</code></li></ul><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-css data-lang=css><span style=color:#f92672>div</span> {
+  <span style=color:#66d9ef>flex-flow</span>: <span style=color:#f92672>&lt;</span><span style=color:#66d9ef>flex</span><span style=color:#f92672>-</span><span style=color:#66d9ef>direction</span><span style=color:#f92672>&gt;</span> <span style=color:#f92672>&lt;</span><span style=color:#66d9ef>flex</span><span style=color:#f92672>-</span><span style=color:#66d9ef>wrap</span><span style=color:#f92672>&gt;</span>;
+}
+</code></pre></div><h3 id=justify-content-设置项目在主轴上的对齐方式>justify-content: 设置项目在主轴上的对齐方式</h3><ul><li><strong>flex-start</strong>：(默认) 左对齐</li><li><strong>flex-end</strong>：右对齐</li><li><strong>center</strong>：居中对齐</li><li><strong>space-between</strong>：两端对齐</li><li><strong>space-around</strong>：每个项目间的间距一致</li></ul><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;utf-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>ul</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>600</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>padding</span>: <span style=color:#ae81ff>10</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>list-style</span>: <span style=color:#66d9ef>none</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#e0efff</span>;
+      }
+      <span style=color:#f92672>li</span> {
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>margin-right</span>: <span style=color:#ae81ff>4</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>margin-bottom</span>: <span style=color:#ae81ff>4</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#66d9ef>gray</span>;
+      }
+
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>justify-content</span>: <span style=color:#66d9ef>flex</span><span style=color:#f92672>-</span><span style=color:#66d9ef>start</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>justify-content</span>: <span style=color:#66d9ef>flex</span><span style=color:#f92672>-</span><span style=color:#66d9ef>end</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>justify-content</span>: <span style=color:#66d9ef>center</span>;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>4</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>justify-content</span>: <span style=color:#66d9ef>space</span><span style=color:#f92672>-</span>between;
+      }
+      <span style=color:#f92672>ul</span>:<span style=color:#a6e22e>nth-of-type</span><span style=color:#f92672>(</span><span style=color:#f92672>5</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>justify-content</span>: <span style=color:#66d9ef>space</span><span style=color:#f92672>-</span>around;
+      }
+
+      <span style=color:#f92672>li</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>40</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>40</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>40</span><span style=color:#66d9ef>px</span>;
+      }
+      <span style=color:#f92672>li</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+      }
+      <span style=color:#f92672>li</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>50</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>50</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>50</span><span style=color:#66d9ef>px</span>;
+      }
+      <span style=color:#f92672>li</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>4</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>h3</span>&gt;justify-content: flex-start&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;justify-content: flex-end&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;justify-content: center&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;justify-content: space-between&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+
+    &lt;<span style=color:#f92672>h3</span>&gt;justify-content: space-around&lt;/<span style=color:#f92672>h3</span>&gt;
+    &lt;<span style=color:#f92672>ul</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;a&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;b&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;c&lt;/<span style=color:#f92672>li</span>&gt;
+      &lt;<span style=color:#f92672>li</span>&gt;d&lt;/<span style=color:#f92672>li</span>&gt;
+    &lt;/<span style=color:#f92672>ul</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/justify-content.png alt></p><h3 id=align-items-设置项目在交叉轴上的对齐方式>align-items: 设置项目在交叉轴上的对齐方式</h3><ul><li><strong>flex-start</strong>：沿交叉轴起点对齐</li><li><strong>flex-end</strong>：沿交叉轴终点对齐</li><li><strong>center</strong>：沿交叉轴中点对齐</li><li><strong>baseline</strong>：与项目第一行文字的基线对齐</li><li><strong>stretch</strong>：(默认) 未设置高度的项目会沾满整个容器</li></ul><p><img src=/images/flex/align-items.jpg alt></p><h3 id=align-content-设置多行项目时的对齐方式>align-content: 设置多行项目时的对齐方式</h3><ul><li><strong>flex-start</strong>：沿交叉轴起点对齐</li><li><strong>flex-end</strong>：沿交叉轴终点对齐</li><li><strong>center</strong>：沿交叉轴中点对齐</li><li><strong>space-between</strong>：两端对齐</li><li><strong>space-around</strong>：平均分配空间</li><li><strong>stretch</strong>：(默认) 占满整个交叉轴</li></ul><p><img src=/images/flex/align-content.jpg alt></p><h2 id=04-项目选项>04. 项目选项</h2><h3 id=order-设置项目排列顺序从小到大默认为-0>order: 设置项目排列顺序，从小到大，默认为 0</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;UTF-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>body</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>300</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#ae81ff>#bbb</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>color</span>: <span style=color:#66d9ef>white</span>;
+        <span style=color:#66d9ef>margin</span>: <span style=color:#ae81ff>5</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#00bcd4</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>order</span>: <span style=color:#ae81ff>1</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>order</span>: <span style=color:#ae81ff>9</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;9&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/order.jpg alt></p><h3 id=flex-grow-设置项目放大比例>flex-grow: 设置项目放大比例</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;UTF-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>body</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>500</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#ae81ff>#bbb</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>color</span>: <span style=color:#66d9ef>white</span>;
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#00bcd4</span>;
+        <span style=color:#66d9ef>outline</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#66d9ef>gray</span>;
+      }
+
+      #avg <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-grow</span>: <span style=color:#ae81ff>1</span>;
+      }
+      #avg <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-grow</span>: <span style=color:#ae81ff>1</span>;
+      }
+      #avg <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-grow</span>: <span style=color:#ae81ff>1</span>;
+      }
+
+      #diff <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-grow</span>: <span style=color:#ae81ff>1</span>;
+      }
+      #diff <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-grow</span>: <span style=color:#ae81ff>3</span>;
+      }
+      #diff <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-grow</span>: <span style=color:#ae81ff>5</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>h2</span>&gt;默认值0&lt;/<span style=color:#f92672>h2</span>&gt;
+    &lt;<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+
+    &lt;<span style=color:#f92672>h2</span>&gt;设置为1，均分&lt;/<span style=color:#f92672>h2</span>&gt;
+    &lt;<span style=color:#f92672>div</span> <span style=color:#a6e22e>id</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;avg&#34;</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+
+    &lt;<span style=color:#f92672>h2</span>&gt;设置不同的值&lt;/<span style=color:#f92672>h2</span>&gt;
+    &lt;<span style=color:#f92672>div</span> <span style=color:#a6e22e>id</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;diff&#34;</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;3&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;5&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/flex-grow.jpg alt></p><h3 id=flex-shrink-设置项目缩小比例>flex-shrink: 设置项目缩小比例</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;UTF-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>body</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>250</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#ae81ff>#bbb</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>color</span>: <span style=color:#66d9ef>white</span>;
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#00bcd4</span>;
+        <span style=color:#66d9ef>outline</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#66d9ef>gray</span>;
+      }
+
+      #zero <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>),</span>
+      #zero <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>),</span>
+      #zero <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-shrink</span>: <span style=color:#ae81ff>0</span>;
+      }
+
+      #zoom <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-shrink</span>: <span style=color:#ae81ff>0</span>;
+      }
+      #zoom <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-shrink</span>: <span style=color:#ae81ff>0</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>h2</span>&gt;默认值1，全缩放&lt;/<span style=color:#f92672>h2</span>&gt;
+    &lt;<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+
+    &lt;<span style=color:#f92672>h2</span>&gt;设置为0，全不缩放&lt;/<span style=color:#f92672>h2</span>&gt;
+    &lt;<span style=color:#f92672>div</span> <span style=color:#a6e22e>id</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;zero&#34;</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+
+    &lt;<span style=color:#f92672>h2</span>&gt;只缩放某元素&lt;/<span style=color:#f92672>h2</span>&gt;
+    &lt;<span style=color:#f92672>div</span> <span style=color:#a6e22e>id</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;zoom&#34;</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;1&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;0&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/flex-shrink.jpg alt></p><h3 id=flex-basis-设置项目基准值>flex-basis: 设置项目基准值</h3><ul><li><strong>auto</strong>：(默认) 项目大小</li></ul><p>浏览器会根据 <code>flex-basis</code> 计算伸缩比例。若设置为 <code>auto</code> 且未设置 <code>width</code> ，则是项目内内容所占据的宽度。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;UTF-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>body</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>250</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#ae81ff>#bbb</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>color</span>: <span style=color:#66d9ef>white</span>;
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#00bcd4</span>;
+        <span style=color:#66d9ef>outline</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#66d9ef>gray</span>;
+      }
+
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>flex-basis</span>: <span style=color:#ae81ff>500</span><span style=color:#66d9ef>px</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;a&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;b&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;c&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><h3 id=align-self-为某个项目单独设置-align-items>align-self: 为某个项目单独设置 <code>align-items</code></h3><ul><li><strong>auto</strong>：(默认) 继承父元素的 <code>align-items</code> 属性</li></ul><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-html data-lang=html><span style=color:#75715e>&lt;!DOCTYPE html&gt;</span>
+&lt;<span style=color:#f92672>html</span>&gt;
+  &lt;<span style=color:#f92672>head</span>&gt;
+    &lt;<span style=color:#f92672>meta</span> <span style=color:#a6e22e>charset</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;UTF-8&#34;</span> /&gt;
+    &lt;<span style=color:#f92672>style</span>&gt;
+      <span style=color:#f92672>body</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>400</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>100</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>display</span>: <span style=color:#66d9ef>flex</span>;
+        <span style=color:#66d9ef>align-items</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>border</span>: <span style=color:#ae81ff>1</span><span style=color:#66d9ef>px</span> <span style=color:#66d9ef>solid</span> <span style=color:#ae81ff>#bbb</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span> {
+        <span style=color:#66d9ef>color</span>: <span style=color:#66d9ef>white</span>;
+        <span style=color:#66d9ef>margin</span>: <span style=color:#ae81ff>5</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>width</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>font-size</span>: <span style=color:#ae81ff>25</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>text-align</span>: <span style=color:#66d9ef>center</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#00bcd4</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>40</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>40</span><span style=color:#66d9ef>px</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>2</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>60</span><span style=color:#66d9ef>px</span>;
+      }
+      <span style=color:#f92672>div</span> <span style=color:#f92672>&gt;</span> <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>3</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>height</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+        <span style=color:#66d9ef>line-height</span>: <span style=color:#ae81ff>80</span><span style=color:#66d9ef>px</span>;
+      }
+
+      #self {
+        <span style=color:#66d9ef>margin-top</span>: <span style=color:#ae81ff>10</span><span style=color:#66d9ef>px</span>;
+      }
+      #self <span style=color:#f92672>div</span>:<span style=color:#a6e22e>nth-child</span><span style=color:#f92672>(</span><span style=color:#f92672>1</span><span style=color:#f92672>)</span> {
+        <span style=color:#66d9ef>align-self</span>: <span style=color:#66d9ef>flex</span><span style=color:#f92672>-</span><span style=color:#66d9ef>start</span>;
+        <span style=color:#66d9ef>background</span>: <span style=color:#ae81ff>#ff4500</span>;
+      }
+    &lt;/<span style=color:#f92672>style</span>&gt;
+  &lt;/<span style=color:#f92672>head</span>&gt;
+  &lt;<span style=color:#f92672>body</span>&gt;
+    &lt;<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;a&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;b&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;c&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+
+    &lt;<span style=color:#f92672>div</span> <span style=color:#a6e22e>id</span><span style=color:#f92672>=</span><span style=color:#e6db74>&#34;self&#34;</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;a&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;b&lt;/<span style=color:#f92672>div</span>&gt;
+      &lt;<span style=color:#f92672>div</span>&gt;c&lt;/<span style=color:#f92672>div</span>&gt;
+    &lt;/<span style=color:#f92672>div</span>&gt;
+  &lt;/<span style=color:#f92672>body</span>&gt;
+&lt;/<span style=color:#f92672>html</span>&gt;
+</code></pre></div><p><img src=/images/flex/align-self.jpg alt></p></div><div class=post-meta><ul class=tags><li><a href=/tags/css>CSS</a></li><li><a href=/tags/flex>Flex</a></li></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

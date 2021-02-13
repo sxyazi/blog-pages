@@ -1,0 +1,103 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Golang 指针的一些零散笔记 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Golang 指针的一些零散笔记
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-09-12T18:12:21+0800 class=date>Tuesday, September 12, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>最近学习了一下 Go 语言，发现里面很多东西都和其他语言都不太一样。但是我却很喜欢这门语言，可能是他比较简单吧？比较符合我胃口。下面是学习过程中对 Go 中的指针部分做的一些片段性的笔记。</p><h2 id=01-数组指针>01. 数组指针</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;fmt&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#75715e>// 一个 [3]int 型数组
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>arr</span> <span style=color:#f92672>:=</span> [<span style=color:#f92672>...</span>]<span style=color:#66d9ef>int</span>{<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>3</span>}
+
+    <span style=color:#a6e22e>p</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>arr</span> <span style=color:#75715e>// 一个指向 [3]int 型数组的指针
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>test</span>(<span style=color:#a6e22e>p</span>)   <span style=color:#75715e>// 传递过去的是 arr 的引用
+</span><span style=color:#75715e></span>
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>arr</span>) <span style=color:#75715e>// [1 233 3]
+</span><span style=color:#75715e></span>}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test</span>(<span style=color:#a6e22e>p</span> <span style=color:#f92672>*</span>[<span style=color:#ae81ff>3</span>]<span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>p</span>[<span style=color:#ae81ff>0</span>]) <span style=color:#75715e>// 1
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>p</span>[<span style=color:#ae81ff>1</span>] = <span style=color:#ae81ff>233</span>
+}
+</code></pre></div><h2 id=02-数组与切片的传递>02. 数组与切片的传递</h2><p>Go 里面的切片是长度可变的数组，但更准确来说是指向数组这一原始类型的指针变量，所以切片是个引用值。当用户数据大于其所指向的区块范围时，这时会开辟并指向到一个新的原先的两倍的内存空间。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;fmt&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#75715e>// 值传递
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>arr</span> <span style=color:#f92672>:=</span> [<span style=color:#f92672>...</span>]<span style=color:#66d9ef>int</span>{<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>3</span>}
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%p ---&gt; &#34;</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>arr</span>)
+    <span style=color:#a6e22e>test1</span>(<span style=color:#a6e22e>arr</span>)
+
+    <span style=color:#75715e>// 引用传递
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>sli</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>arr</span>[:]
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%p ---&gt; &#34;</span>, <span style=color:#a6e22e>sli</span>)
+    <span style=color:#a6e22e>test2</span>(<span style=color:#a6e22e>sli</span>)
+
+    <span style=color:#75715e>// Result:
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 0xc4200161c0 ---&gt; 0xc420016200
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 0xc4200161c0 ---&gt; 0xc4200161c0
+</span><span style=color:#75715e></span>}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test1</span>(<span style=color:#a6e22e>a</span> [<span style=color:#ae81ff>3</span>]<span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%p\n&#34;</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>a</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test2</span>(<span style=color:#a6e22e>s</span> []<span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%p\n&#34;</span>, <span style=color:#a6e22e>s</span>)
+}
+</code></pre></div><h2 id=03-使用-new-创建数组>03. 使用 new() 创建数组</h2><p><code>arr1 := [3]int{1, 2, 3}</code> 是建立了个叫 arr1 的 [3]int 型数组,</p><p><code>arr2 := new([3]int)</code> 是分配了个 [3]int 型的内存空间并将 arr2 指向了它，等同于 <code>arr2 := &[3]int{}</code></p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;fmt&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>arr1</span> <span style=color:#f92672>:=</span> [<span style=color:#ae81ff>3</span>]<span style=color:#66d9ef>int</span>{<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>3</span>}
+    <span style=color:#a6e22e>arr2</span> <span style=color:#f92672>:=</span> new([<span style=color:#ae81ff>3</span>]<span style=color:#66d9ef>int</span>)
+
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>arr1</span>, <span style=color:#a6e22e>arr2</span>) <span style=color:#75715e>// [1 2 3] &amp;[0 0 0]
+</span><span style=color:#75715e></span>
+    <span style=color:#a6e22e>test1</span>(<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>arr1</span>)
+    <span style=color:#a6e22e>test2</span>(<span style=color:#a6e22e>arr2</span>) <span style=color:#75715e>// 使用 new 创建的变量本身就是一个指针，不需要加 &amp; 符号
+</span><span style=color:#75715e></span>
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>arr1</span>, <span style=color:#a6e22e>arr2</span>) <span style=color:#75715e>// [233 2 3] &amp;[233 0 0]
+</span><span style=color:#75715e></span>}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test1</span>(<span style=color:#a6e22e>a</span> <span style=color:#f92672>*</span>[<span style=color:#ae81ff>3</span>]<span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>a</span>[<span style=color:#ae81ff>0</span>] = <span style=color:#ae81ff>233</span>
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test2</span>(<span style=color:#a6e22e>a</span> <span style=color:#f92672>*</span>[<span style=color:#ae81ff>3</span>]<span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>a</span>[<span style=color:#ae81ff>0</span>] = <span style=color:#ae81ff>233</span>
+}
+</code></pre></div><h2 id=04-new-与-make-的区别>04. new 与 make 的区别</h2><ol><li>new 是用来分配内存的，而 make 是用来初始化的；</li><li>new(T) 返回一个指向 T 类型的零值指针地址，make(T) 返回一个类型为 T 的初始值；</li><li>make 只适用于 slice map channel 类型。</li></ol><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> <span style=color:#e6db74>&#34;fmt&#34;</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>test2</span>()
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test1</span>() {
+    <span style=color:#a6e22e>arr</span> <span style=color:#f92672>:=</span> [<span style=color:#f92672>...</span>]<span style=color:#66d9ef>int</span>{<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>3</span>}
+    <span style=color:#a6e22e>sli</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>arr</span>[:]
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%p ---&gt; %p\n&#34;</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>arr</span>, <span style=color:#a6e22e>sli</span>)
+
+    <span style=color:#75715e>// 0xc4200161c0 ---&gt; 0xc4200161c0
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 证实：切片是指向数组的指针
+</span><span style=color:#75715e></span>}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test2</span>() {
+    <span style=color:#a6e22e>arr</span> <span style=color:#f92672>:=</span> [<span style=color:#f92672>...</span>]<span style=color:#66d9ef>int</span>{<span style=color:#ae81ff>1</span>, <span style=color:#ae81ff>2</span>, <span style=color:#ae81ff>3</span>}
+
+    <span style=color:#a6e22e>sli1</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>arr</span>[:]
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>sli1</span>)
+
+    <span style=color:#a6e22e>sli2</span> <span style=color:#f92672>:=</span> new([]<span style=color:#66d9ef>int</span>)
+    <span style=color:#f92672>*</span><span style=color:#a6e22e>sli2</span> = <span style=color:#a6e22e>arr</span>[:]
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>*</span><span style=color:#a6e22e>sli2</span>)
+
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Printf</span>(<span style=color:#e6db74>&#34;%p ---&gt; %p ---&gt; %p\n&#34;</span>, <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>arr</span>, <span style=color:#a6e22e>sli1</span>, <span style=color:#a6e22e>sli2</span>)
+
+    <span style=color:#75715e>// 0xc4200161c0 ---&gt; 0xc4200161c0 ---&gt; 0xc42000a080
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 证实：sli2 得到了新分配的内存空间
+</span><span style=color:#75715e></span>}
+</code></pre></div></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

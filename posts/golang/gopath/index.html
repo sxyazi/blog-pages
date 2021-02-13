@@ -1,0 +1,52 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Golang 项目目录结构 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Golang 项目目录结构
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-09-16T17:02:53+0800 class=date>Saturday, September 16, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>项目的目录结构会影响整个项目的文件排布甚至是整个项目的文件架构。所以在开始编写代码之前要先明确项目的目录如何去安排。其它语言可能对项目结构没有什么要求，相对更加自由一些，而 Go 语言做了这方面的规定。这样虽然失去了自由，但是却得到了目录结构的一致性。</p><h2 id=01-环境变量>01. 环境变量</h2><p>在安装 Go 语言时，会让你配置几个环境变量：</p><ul><li><strong>GOROOT</strong>：go 的安装位置</li><li><strong>GOPATH</strong>：go 的工作目录，即项目目录</li><li><strong>GOBIN</strong>：<code>go install</code> 编译后的二进制文件存储路径，默认为 <code>$GOPATH/bin</code> 目录</li></ul><p>可以通过 <code>go env</code> 查看到它们的值。</p><h2 id=02-目录结构>02. 目录结构</h2><p>假设 GOPATH 配置路径为 <code>~/test</code> ，GOBIN 配置为空，那么 test 的初始目录结构应该是这样的：</p><pre><code>test
+├── bin  # 存放编译后的二进制文件
+├── pkg  # 存放编译后的包文件
+└── src  # 存放源代码
+</code></pre><p>接下来进到 <code>src</code> 目录创建一个 <code>main.go</code> 的主程序文件：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;hello world!&#34;</span>)
+}
+</code></pre></div><p>执行 <code>go run main.go</code> 可以看到 &ldquo;hello world!&rdquo; 的打印结果。现在的目录结构是这样的：</p><pre><code>test
+├── bin
+├── pkg
+└── src
+    └── main.go
+</code></pre><h2 id=03-自定义-package>03. 自定义 package</h2><p>我们自定义的包文件同样也放到 <code>src</code> 目录里面。首先先创建个名为 <code>foo</code> 的目录，并在里面创建一个 <code>foo.go</code> 的文件，其内容为：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>foo</span>
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>ReturnVal</span>() <span style=color:#66d9ef>string</span> {
+    <span style=color:#66d9ef>return</span> <span style=color:#e6db74>&#34;hello world!!&#34;</span>
+}
+</code></pre></div><p>现在的目录结构是这样的：</p><pre><code>test
+├── bin
+├── pkg
+└── src
+    ├── main.go
+    └── foo
+        └── foo.go
+</code></pre><p>修改 main.go 的文件内容：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;foo&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>foo</span>.<span style=color:#a6e22e>ReturnVal</span>())
+}
+</code></pre></div><p>这时执行 <code>go run main.go</code> 会打印出 &ldquo;hello world!!&rdquo; 证明刚才编写的包成功引入进来了。</p><p>可以使用 <code>go install foo</code> 来编译并安装 foo 这个包，执行后的目录结构如下：</p><pre><code>test
+├── bin
+├── pkg  # 里面多了些东西
+│   └── darwin_amd64
+│       └── foo.a
+└── src
+    ├── main.go
+    └── foo
+        └── foo.go
+</code></pre><h2 id=04-包的命名>04. 包的命名</h2><p>从上面可以看出，定义了一个叫 <code>foo</code> 的包，并且创建了 <code>src/foo</code> 这个目录，在此目录中又有 <code>foo.go</code> 这个文件。下面将做一些实验性的行为。</p><p><strong>1. 修改目录名与文件名</strong>：</p><blockquote><p>将 foo 目录与 foo.go 文件重新命名为 bar 与 bar.go ，之后执行 <code>go run main.go</code> 发现抛出错误。</p><p>将 main.go 中的 <code>import "foo"</code> 修改为 <code>import "bar"</code> ，再次执行发现问题解除。</p></blockquote><p><strong>2. 修改 package 名</strong>：</p><blockquote><p>将 foo.go 文件中的 <code>package foo</code> 修改为 <code>package bar</code> ，之后执行 <code>go run main.go</code> 发现抛出错误。</p><p>将 main.go 中的 <code>foo.ReturnVal()</code> 修改为 <code>bar.ReturnVal()</code> ，再次执行发现问题解除。</p></blockquote><p><strong>3. 修改文件名</strong>：</p><blockquote><p>将 foo.go 文件重新命名为 <code>abc.go</code> ，之后执行 <code>go run main.go</code> 成功打印出结果。</p></blockquote><p><strong>结论</strong>：</p><ul><li>包的目录名会影响 import 操作</li><li>包的 package 名实际上是包的名字</li><li>修改目录中的文件名不会影响到包的正常工作</li></ul></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

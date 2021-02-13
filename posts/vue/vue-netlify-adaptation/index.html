@@ -1,0 +1,53 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>让 Vue-cli 支持 Netlify 的 Redirect | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>让 Vue-cli 支持 Netlify 的 Redirect
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-11-02T19:37:15+0800 class=date>Thursday, November 2, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>最近有个 Vue 项目，是使用 Vue-cli 构建起来的。Vue-Router 是使用的 <a href=https://router.vuejs.org/zh-cn/essentials/history-mode.html>HTML5 History</a> 模式。这个模式是使用浏览器提供的 History 接口实现的，所以如果是在页面上通过点击链接往里面 push 一个新地址是没问题的，但是如果直接请求这个地址则会 404 （因为这个地址并不是真实存在的，只是我们通过代码模拟出来的）。</p><p>所以 Vue-Router 的手册中也给出了解决方式：通过配置重写规则把 404 统一重定向到 index.html 文件。但是懒得自己配环境，所以直接用的 Netlify 提供的免费服务。</p><p>当然 Netlify 很强大，提供了 redirect 的功能，是通过添加 <code>_redirects</code> 规则文件到<strong>根目录</strong>下来实现的。具体可以参照：https://www.netlify.com/docs/redirects/</p><p>问题就是如何在 <code>npm run build</code> 的时候自动把 <code>_redirects</code> 文件添加到根目录呢？</p><h2 id=01-尝试>01. 尝试</h2><pre><code>.
+├── build
+├── config
+├── node_modules
+├── src
+└── static
+
+5 directories
+</code></pre><p>上面的是由 vue-cli 所构建出来的项目的目录结构。起初我尝试把 <code>_redirects</code> 放到 <code>static</code> 目录中，但是失败了。是因为 <code>npm run build</code> 后 <code>static</code> 目录中的文件并不是放到了根目录（这里是 <code>dist</code>）中，而是在根目录中的 <code>static</code> 目录内。</p><pre><code>dist
+├── index.html
+└── static
+    ├── _redirects  &lt;-- 在这里
+    ├── css
+    ├── fonts
+    └── js
+
+4 directories, 10 files
+</code></pre><h2 id=02-查资料>02. 查资料</h2><p>于是我 Google 了一圈，找到了这个 issues ：https://github.com/vuejs/vue-cli/issues/285，但是这貌似也不是我想要的。所以没办法了，只能自己动手了。</p><h2 id=03-瞎改>03. 瞎改</h2><p>看了眼 <code>package.json</code> 文件里的 build 是执行了 <code>node build/build.js</code> ，打开这个文件一直跟踪到了 <code>build/webpack.prod.conf.js</code> 文件里，在 90 行左右有这样的代码：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#75715e>// copy custom static assets
+</span><span style=color:#75715e></span><span style=color:#66d9ef>new</span> <span style=color:#a6e22e>CopyWebpackPlugin</span>([
+  {
+    <span style=color:#a6e22e>from</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>path</span>.<span style=color:#a6e22e>resolve</span>(<span style=color:#a6e22e>__dirname</span>, <span style=color:#e6db74>&#39;../static&#39;</span>),
+    <span style=color:#a6e22e>to</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>config</span>.<span style=color:#a6e22e>build</span>.<span style=color:#a6e22e>assetsSubDirectory</span>,
+    <span style=color:#a6e22e>ignore</span><span style=color:#f92672>:</span> [<span style=color:#e6db74>&#39;.*&#39;</span>],
+  },
+])
+</code></pre></div><p>使用了 <a href=https://github.com/webpack-contrib/copy-webpack-plugin>CopyWebpackPlugin</a> 这个插件把 static 中的文件拷贝到了 <code>config.build.assetsSubDirectory</code> 下。</p><p>assetsSubDirectory 的定义在 <code>config/index.js</code> 文件中，应该就是指向了 <code>dist/static</code> 这个目录。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-js data-lang=js><span style=color:#a6e22e>module</span>.<span style=color:#a6e22e>exports</span> <span style=color:#f92672>=</span> {
+  <span style=color:#a6e22e>build</span><span style=color:#f92672>:</span> {
+    <span style=color:#a6e22e>env</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>require</span>(<span style=color:#e6db74>&#39;./prod.env&#39;</span>),
+    <span style=color:#a6e22e>index</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>path</span>.<span style=color:#a6e22e>resolve</span>(<span style=color:#a6e22e>__dirname</span>, <span style=color:#e6db74>&#39;../dist/index.html&#39;</span>),
+    <span style=color:#a6e22e>assetsRoot</span><span style=color:#f92672>:</span> <span style=color:#a6e22e>path</span>.<span style=color:#a6e22e>resolve</span>(<span style=color:#a6e22e>__dirname</span>, <span style=color:#e6db74>&#39;../dist&#39;</span>),
+    <span style=color:#a6e22e>assetsSubDirectory</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;static&#39;</span>,  <span style=color:#75715e>// &lt;-- 在这里
+</span><span style=color:#75715e></span>    <span style=color:#a6e22e>assetsPublicPath</span><span style=color:#f92672>:</span> <span style=color:#e6db74>&#39;/&#39;</span>,
+    <span style=color:#a6e22e>productionSourceMap</span><span style=color:#f92672>:</span> <span style=color:#66d9ef>true</span>,
+    <span style=color:#75715e>// ....
+</span></code></pre></div><p>所以我就改了一下 <code>build/webpack.prod.conf.js</code> 的代码：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-diff data-lang=diff><span style=color:#a6e22e>+    // copy _redirects file
+</span><span style=color:#a6e22e>+    new CopyWebpackPlugin([
+</span><span style=color:#a6e22e>+      {
+</span><span style=color:#a6e22e>+        from: path.resolve(__dirname, &#39;../static/_redirects&#39;),
+</span><span style=color:#a6e22e>+        to: config.build.assetsSubDirectory + &#39;/..&#39;
+</span><span style=color:#a6e22e>+      }
+</span><span style=color:#a6e22e>+    ]),
+</span><span style=color:#a6e22e></span>     // copy custom static assets
+     new CopyWebpackPlugin([
+       {
+         from: path.resolve(__dirname, &#39;../static&#39;),
+         to: config.build.assetsSubDirectory,
+<span style=color:#f92672>-        ignore: [&#39;.*&#39;]
+</span><span style=color:#f92672></span><span style=color:#a6e22e>+        ignore: [&#39;.*&#39;, &#39;_redirects&#39;]
+</span><span style=color:#a6e22e></span>       }
+     ])
+</code></pre></div><p>把 <code>_redirects</code> 文件复制到 dist/static 的上级目录 <code>/..</code> 中。完成啦~</p><h2 id=04-总结>04. 总结</h2><p>这种修改文件的方法可能是最简便的了，但是随便修改这些文件显得不是很专业嘛。所以大家如果有别的方法请告诉我。</p></div><div class=post-meta><ul class=tags><li><a href=/tags/vue>Vue</a></li><li><a href=/tags/netlify>Netlify</a></li><li><a href=/tags/vue-cli>Vue CLI</a></li></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

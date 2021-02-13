@@ -1,0 +1,33 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>使用 GitHub Actions 实现博客自动化部署 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>使用 GitHub Actions 实现博客自动化部署
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2020-07-26T21:12:16+0800 class=date>Sunday, July 26, 2020</time></h1></header><section id=main><article class=post><div class=post-content><h2 id=tldr>TL;DR</h2><p>最近把博客渲染、部署的工作从我很久前自己写的 <a href=https://github.com/sxyazi/blog-deploy>blog-deploy</a> 迁移到了 <a href=https://gohugo.io>Hugo</a>，原因是前者功能太简单了，而又无心再去维护。顺便又优化了下博客样式，加入了近年来流行的暗色元素。</p><p>由于我的博客是全权托管在 GitHub 上的，以前 repo 全部都是公共的，后来不想这样了，因为有些还没写完的文章我不想那么早 push 上去就被别人看到（内容需要沉淀才会有价值），但是为了在多个设备间同步又必须 push。所以我把博客的 repo 设置为了私有。但是随之而来的是私有 repo 不能用免费的 Travis，不能享有免费的 Pages 服务。</p><p>所以我想了个方案：</p><ul><li>原文仓库私有化</li><li>Pages 单独开一个公共 repo，部署在 <code>gh-pages</code> 分支</li><li>文章发布时针对性渲染，Hugo 里对应的就是 <code>draft: true</code></li></ul><h2 id=github-actions>GitHub Actions</h2><p>上面说了那么多，现在进入主题。GitHub Actions 是 GitHub 最近一段时间（被巨硬收购后）推出的一款持续集成服务。它相对于 <a href=https://travis-ci.org>Travis CI</a> 来说有更高的可玩性，更重要的是他对私有仓库免费！</p><p>一切准备就绪后，在 GitHub 创建两个 repo：</p><ul><li>blog：私有，用于放置 Hugo 和博客文章等文件；</li><li>blog-pages：公共，放置 Hugo 渲染出的博客静态文件；</li></ul><h2 id=创建部署密钥>创建部署密钥</h2><p>由于我们需要使用 GitHub Actions 实现自动化部署，所以需要给予对 <code>blog-pages</code> 仓库的写权限，这里我使用的是 GitHub 的 <code>Deploy keys</code> 功能。</p><p>使用如下指令可以创建部署密钥，执行后会在当前目录生成 <code>gh-pages</code>、<code>gh-pages.pub</code> 两个文件，前者是私钥，后者为公钥。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>ssh-keygen -t rsa -b <span style=color:#ae81ff>4096</span> -C <span style=color:#e6db74>&#34;noreply@github.com&#34;</span> -f gh-pages -N <span style=color:#e6db74>&#34;&#34;</span>
+</code></pre></div><p>然后打开 <a href=https://github.com/sxyazi/blog-pages>blog-pages</a> 仓库页面，找到顶部导航中的 <code>Settings</code>，点击后选择 <code>Deploy keys</code>，点击 <code>Add deploy key</code> 贴入公钥文件的内容。</p><p>还需要在 <code>blog</code> 这个私有仓库的 <code>Settings - Secrets - New secret</code> 界面添加私钥。其中 <code>Name</code> 一栏我叫 <code>ACTIONS_DEPLOY_KEY</code>，你也可以改别的，但是要同样替换掉下面 GitHub Actions 配置里的名字。</p><h2 id=添加-github-actions-配置>添加 GitHub Actions 配置</h2><p>在 <code>blog</code> 仓库根目录创建 <code>.github/workflows/deploy.yaml</code> 文件，后面的 <code>deploy.yaml</code> 文件名你可以自定义。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-yaml data-lang=yaml><span style=color:#66d9ef>name</span>: Build and Deploy
+<span style=color:#66d9ef>on</span>:
+  <span style=color:#66d9ef>push</span>:
+    <span style=color:#66d9ef>branches</span>:
+      - master
+<span style=color:#66d9ef>jobs</span>:
+  <span style=color:#66d9ef>build-and-deploy</span>:
+    <span style=color:#66d9ef>runs-on</span>: ubuntu-latest
+    <span style=color:#66d9ef>steps</span>:
+      - <span style=color:#66d9ef>name</span>: Checkout
+        <span style=color:#66d9ef>uses</span>: actions/checkout@master
+
+      - <span style=color:#66d9ef>name</span>: Setup Hugo
+        <span style=color:#66d9ef>run</span>: <span style=color:#e6db74>|
+</span><span style=color:#e6db74>          wget https://github.com/gohugoio/hugo/releases/download/v0.74.3/hugo_extended_0.74.3_Linux-64bit.deb -O hugo.deb</span>
+          sudo dpkg -i hugo.deb
+
+      - <span style=color:#66d9ef>name</span>: Build
+        <span style=color:#66d9ef>run</span>: <span style=color:#e6db74>|
+</span><span style=color:#e6db74>          hugo --minify</span>
+
+      - <span style=color:#66d9ef>name</span>: Deploy
+        <span style=color:#66d9ef>uses</span>: peaceiris/actions-gh-pages@v3
+        <span style=color:#66d9ef>with</span>:
+          <span style=color:#75715e># cname: sxyz.blog</span>
+          <span style=color:#66d9ef>publish_dir</span>: public
+          <span style=color:#66d9ef>force_orphan</span>: <span style=color:#66d9ef>true</span>
+          <span style=color:#66d9ef>deploy_key</span>: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          <span style=color:#66d9ef>external_repository</span>: sxyazi/blog-pages
+</code></pre></div><p>你需要将 <code>external_repository</code> 的值修改成你的公有仓库的名字。如果你有绑定域名的需要，把上面代码中的 <code>cname</code> 项解除注释改成你自己的域名就可以了，域名 DNS 需要 CNAME 解析到 <code>&lt;USERNAME>.github.io</code>，<code>&lt;USERNAME></code> 是你的 GitHub 用户名。</p><p>把上面文件发布到 GitHub 上，就会自动开始部署。如果构建流程没有报错的话，就代表博客已经成功部署了一次了。下次再去修改博客里的任何文件时就都会再重复这一自动步骤了。</p></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>

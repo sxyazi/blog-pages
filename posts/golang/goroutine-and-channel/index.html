@@ -1,0 +1,303 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><title>Golang 协程与通道 | SXYAZI</title><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"><link rel=stylesheet href=/style.min.a1fa3762d77191518465ae659ec63b26b7b9cee6fd249501fa4e8c64436bee1b.css integrity="sha256-ofo3YtdxkVGEZa5lnsY7Jre5zub9JJUB+k6MZENr7hs="></head><body><header id=header><h1 class=title>Golang 协程与通道
+<a href=/ class=go-home title="Go Home">&#8617;&#xfe0e;</a>
+<time datetime=2017-09-24T14:33:22+0800 class=date>Sunday, September 24, 2017</time></h1></header><section id=main><article class=post><div class=post-content><p>这篇文章记录了我学习 Go 语言中的协程与通道的一些笔记，是片断性的。</p><h2 id=01-无缓冲通道>01. 无缓冲通道</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+</code></pre></div><p>无缓冲通道只能包含 1 个元素，读和写都是阻塞的。</p><h2 id=02-缓冲通道>02. 缓冲通道</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>, <span style=color:#ae81ff>5</span>)
+</code></pre></div><p>有缓冲的通道可以包含指定个数的元素，读和写都是异步的，不会造成阻塞。</p><h2 id=03-死锁>03. 死锁</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#ae81ff>10</span>
+    <span style=color:#66d9ef>go</span> <span style=color:#a6e22e>test</span>(<span style=color:#a6e22e>ch</span>)
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test</span>(<span style=color:#a6e22e>ch</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>)
+}
+</code></pre></div><p>以上代码会出现死锁的问题，因为所有协程都处于休眠状态，向 ch 通道中写入元素后没有机会被读出。修改代码如下：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#a6e22e>test</span>(<span style=color:#a6e22e>ch</span>)
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#ae81ff>10</span>
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>test</span>(<span style=color:#a6e22e>ch</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>) {
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>)
+}
+</code></pre></div><h2 id=04-带缓冲的与不带缓冲的效能测试>04. 带缓冲的与不带缓冲的效能测试</h2><p>可能由于异步的原因，带缓冲的平均要比不带缓冲的快一些。但是当把时间调大，缓冲数量调大后，发现带缓冲的反而更慢一些，可能是在资源调度上面浪费了一些时间。</p><h3 id=无缓冲>无缓冲</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#a6e22e>read</span>(<span style=color:#a6e22e>ch</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#a6e22e>write</span>(<span style=color:#a6e22e>ch</span>)
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>3</span> <span style=color:#f92672>*</span> <span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>read</span>(<span style=color:#a6e22e>ch</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>) {
+    <span style=color:#66d9ef>for</span> {
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>)
+    }
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>write</span>(<span style=color:#a6e22e>ch</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>) {
+    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; ; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+        <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+    }
+}
+
+<span style=color:#75715e>// ....
+</span><span style=color:#75715e>// 330374
+</span><span style=color:#75715e>// 330375
+</span><span style=color:#75715e>// 330376
+</span></code></pre></div><h3 id=带缓冲>带缓冲</h3><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>, <span style=color:#ae81ff>1000000</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#a6e22e>read</span>(<span style=color:#a6e22e>ch</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#a6e22e>write</span>(<span style=color:#a6e22e>ch</span>)
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>read</span>(<span style=color:#a6e22e>ch</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>) {
+    <span style=color:#66d9ef>for</span> {
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>)
+    }
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>write</span>(<span style=color:#a6e22e>ch</span> <span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>) {
+    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; ; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+        <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+    }
+}
+
+<span style=color:#75715e>// ....
+</span><span style=color:#75715e>// 434095
+</span><span style=color:#75715e>// 434096
+</span><span style=color:#75715e>// 434097
+</span></code></pre></div><h2 id=05-同步实现>05. 同步实现</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>bool</span>)
+
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>2</span> <span style=color:#f92672>*</span> <span style=color:#ae81ff>1e9</span>)
+        <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>true</span>
+    }()
+
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;2 秒后程序结束&#34;</span>)
+    <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>
+
+}
+</code></pre></div><p>或者也可以这样：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>bool</span>)
+
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+        <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>true</span>
+    }()
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+        <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#66d9ef>true</span>
+    }()
+
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;2 秒后程序结束&#34;</span>)
+    <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>
+    <span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>ch</span>
+
+}
+</code></pre></div><h2 id=06-迭代器实现>06. 迭代器实现</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>x</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#ae81ff>10</span>) {
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>x</span>)
+    }
+
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#a6e22e>len</span> <span style=color:#66d9ef>int</span>) <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span> {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> &lt; <span style=color:#a6e22e>len</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+            <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+        }
+        close(<span style=color:#a6e22e>ch</span>)
+    }()
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ch</span>
+}
+</code></pre></div><h2 id=07-迭代器死锁实验>07. 迭代器死锁实验</h2><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+    <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>x</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>range</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#ae81ff>10</span>) {
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#a6e22e>x</span>)
+    }
+
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#a6e22e>len</span> <span style=color:#66d9ef>int</span>) <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span> {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> &lt; <span style=color:#a6e22e>len</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+            <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+        }
+    }()
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ch</span>
+}
+</code></pre></div><p>上面的代码最后会出现一个 deadlock panic，下面将试着分析一下出现这个问题的原因。</p><p>我认为，出现这个 panic 的原因是因为没有 close ，for range 循环没有收到 close 通知，认为后面应该还有其他元素。 于是进行了下一轮的迭代。(而这时已经没有其他元素了) 所以就发生了 panic。</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+
+    <span style=color:#a6e22e>x</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#ae81ff>5</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+
+    <span style=color:#75715e>// Result:
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 0
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 1
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 2
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 3
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 4
+</span><span style=color:#75715e></span>
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#a6e22e>len</span> <span style=color:#66d9ef>int</span>) <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span> {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> &lt; <span style=color:#a6e22e>len</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+            <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+        }
+    }()
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ch</span>
+}
+</code></pre></div><p>上面的代码模拟了只取出 5 次的情况，发现并没有发生 panic。而再多取出一个时则发生了 panic：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+
+    <span style=color:#a6e22e>x</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#ae81ff>5</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+    <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>) <span style=color:#75715e>// 多取出了 1 个
+</span><span style=color:#75715e></span>
+    <span style=color:#75715e>// Result:
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 0
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 1
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 2
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 3
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 4
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// fatal error: all goroutines are asleep - deadlock!
+</span><span style=color:#75715e></span>
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#a6e22e>len</span> <span style=color:#66d9ef>int</span>) <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span> {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> &lt; <span style=color:#a6e22e>len</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+            <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+        }
+    }()
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ch</span>
+}
+</code></pre></div><p>之后我又试着把取出的代码放到 goroutine 中，发现并没有出现 panic：</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-go data-lang=go><span style=color:#f92672>package</span> <span style=color:#a6e22e>main</span>
+
+<span style=color:#f92672>import</span> (
+    <span style=color:#e6db74>&#34;fmt&#34;</span>
+    <span style=color:#e6db74>&#34;time&#34;</span>
+)
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>main</span>() {
+
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#a6e22e>x</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#ae81ff>5</span>)
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>)
+        <span style=color:#a6e22e>fmt</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#f92672>&lt;-</span><span style=color:#a6e22e>x</span>) <span style=color:#75715e>// 多取出了 1 个
+</span><span style=color:#75715e></span>    }()
+
+    <span style=color:#75715e>// Result:
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 0
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 1
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 2
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 3
+</span><span style=color:#75715e></span>    <span style=color:#75715e>// 4
+</span><span style=color:#75715e></span>
+    <span style=color:#a6e22e>time</span>.<span style=color:#a6e22e>Sleep</span>(<span style=color:#ae81ff>1e9</span>)
+}
+
+<span style=color:#66d9ef>func</span> <span style=color:#a6e22e>xrange</span>(<span style=color:#a6e22e>len</span> <span style=color:#66d9ef>int</span>) <span style=color:#f92672>&lt;-</span><span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span> {
+    <span style=color:#a6e22e>ch</span> <span style=color:#f92672>:=</span> make(<span style=color:#66d9ef>chan</span> <span style=color:#66d9ef>int</span>)
+    <span style=color:#66d9ef>go</span> <span style=color:#66d9ef>func</span>() {
+        <span style=color:#66d9ef>for</span> <span style=color:#a6e22e>i</span> <span style=color:#f92672>:=</span> <span style=color:#ae81ff>0</span>; <span style=color:#a6e22e>i</span> &lt; <span style=color:#a6e22e>len</span>; <span style=color:#a6e22e>i</span><span style=color:#f92672>++</span> {
+            <span style=color:#a6e22e>ch</span> <span style=color:#f92672>&lt;-</span> <span style=color:#a6e22e>i</span>
+        }
+    }()
+    <span style=color:#66d9ef>return</span> <span style=color:#a6e22e>ch</span>
+}
+</code></pre></div><p>此时我认为，是因为 goroutine 的存在(这时 xrange 函数的 goroutine 已经处于休眠状态了)，使得最后一个 <code>&lt;-x</code> 在一直等待新元素加入。</p><p>针对以上总结：</p><ol><li>当不再 send 时，记得 close channel；</li><li>channel 如果在 goroutine 里用，即使代码逻辑有问题，发生 panic 的几率也小一些；</li><li>channel 就是给不同 goroutine 做消息共享使用的，所以还是尽量在 goroutine 里用吧。</li></ol></div><div class=post-meta><ul class=tags></ul></div></article><aside id=comments></aside></section><a id=back-to-top title="Go To Top" href=#><svg viewBox="0 0 24 24"><path fill="none" d="M0 0h24v24H0z"/><path d="M12 2 4.5 20.29l.71.71L12 18l6.79 3 .71-.71z"/></svg></a><footer id=footer><script src=/js/main.min.eadd59e1bd67148e5af7a90a1bca3434cf18ef3fc80ad858e897f7755bebf510.js integrity="sha256-6t1Z4b1nFI5a96kKG8o0NM8Y7z/ICthY6Jf3dVvr9RA=" crossorigin=anonymous async></script></footer></body></html>
