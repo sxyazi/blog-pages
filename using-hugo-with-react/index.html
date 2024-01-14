@@ -1,0 +1,144 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="最近把博客主题又双叒叕重写了一遍，嘛，生命不息，折腾不止。依然基于 Hugo，但这次把 React 缝合进去了，使用 Vite 构建前端，Tailwind CSS 编写样式，这篇博客记录下整个折腾过程。 新主题在这 https://github.com/sxyazi/hugo-theme-lavias 数据源 由于 Hugo 是一个"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="让 Hugo 用上 React"><meta property="og:description" content="最近把博客主题又双叒叕重写了一遍，嘛，生命不息，折腾不止。依然基于 Hugo，但这次把 React 缝合进去了，使用 Vite 构建前端，Tailwind CSS 编写样式，这篇博客记录下整个折腾过程。 新主题在这 https://github.com/sxyazi/hugo-theme-lavias 数据源 由于 Hugo 是一个"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/using-hugo-with-react/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2022-09-01T21:17:12+08:00"><meta property="article:modified_time" content="2022-09-01T21:17:12+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="让 Hugo 用上 React"><meta name=twitter:description content="最近把博客主题又双叒叕重写了一遍，嘛，生命不息，折腾不止。依然基于 Hugo，但这次把 React 缝合进去了，使用 Vite 构建前端，Tailwind CSS 编写样式，这篇博客记录下整个折腾过程。 新主题在这 https://github.com/sxyazi/hugo-theme-lavias 数据源 由于 Hugo 是一个"><title data-site="Sxyazi’s blog">让 Hugo 用上 React | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>让 Hugo 用上 React</h1><time datetime=2022-09-01T21:17:12+0800>09-01</time>
+<span>using-hugo-with-react</span><div><p>最近把博客主题又双叒叕重写了一遍，嘛，生命不息，折腾不止。依然基于 Hugo，但这次把 React 缝合进去了，使用 Vite 构建前端，Tailwind CSS 编写样式，这篇博客记录下整个折腾过程。<p>新主题在这 <a href=https://github.com/sxyazi/hugo-theme-lavias>https://github.com/sxyazi/hugo-theme-lavias</a><h2 id=数据源>数据源</h2><p>由于 Hugo 是一个静态站点生成器，而我又希望在前端使用 React，做成 SPA，所以就会有“数据来源”的问题。<p>为了同时满足对 SEO 的基本要求，我还是选择使用 Hugo 生成 HTML 格式，只不过这些 HTML 只包含最基本的结构：<pre><code class=language-html>&lt;!-- https://github.com/sxyazi/hugo-theme-lavias/blob/main/layouts/_default/list.html --&gt;
+{{ define &quot;content&quot; }}
+&lt;section id=&quot;posts&quot;&gt;
+	{{- range (.Paginator (.Site.Params.listPaginate | default 100)).Pages -}}
+		&lt;article&gt;
+			&lt;a href=&quot;{{ .RelPermalink }}&quot; title=&quot;{{ .Title }}&quot;&gt;{{ .Title }}&lt;/a&gt;
+			&lt;time datetime=&quot;{{ .PublishDate.Format &quot;2006-01-02T15:04:05Z0700&quot; }}&quot;&gt;{{ .PublishDate.Format &quot;01-02&quot; }}&lt;/time&gt;
+		&lt;/article&gt;
+	{{- end }}
+	{{ partial &quot;paginator.html&quot; . }}
+&lt;/section&gt;
+{{ end }}
+</code></pre><p>之后将它们放置在一个 hidden element 里，即下面的 <code>&lt;main></code>，而面向用户的实际内容渲染到 <code>&lt;app></code> 中：<pre><code class=language-html>&lt;!-- https://github.com/sxyazi/hugo-theme-lavias/blob/main/layouts/_default/baseof.html --&gt;
+&lt;main&gt;{{ block &quot;content&quot; . }}{{ end }}&lt;/main&gt;
+
+&lt;app&gt;&lt;/app&gt;
+&lt;noscript&gt;You need to enable JavaScript to run this app.&lt;/noscript&gt;
+</code></pre><p>在使用这些数据时，我为每种数据源创建了一个单独的 Hook，这个 Hook 只是简单而单调地，从 <code>main</code> 中以 <code>id</code> 为标识，选择不同的数据，下面以文章列表 <code>posts</code> 为例：<pre><code class=language-typescript>// https://github.com/sxyazi/hugo-theme-lavias/blob/main/src/hooks/usePosts.ts
+export type Post = {
+	title: string
+	link: string
+	date: Date
+	summary?: string
+}
+
+export const usePosts = () =&gt; {
+	const [posts, setPosts] = useState&lt;Post[]&gt;([])
+	const source = useSource()
+
+	useEffect(() =&gt; {
+		setPosts(
+			Array.from(source.querySelectorAll('#posts &gt; article')).map((article) =&gt; {
+				const a = article.querySelector(':scope &gt; a')
+				const time = article.querySelector(':scope &gt; time')
+
+				return {
+					title: a?.textContent!,
+					link: a?.getAttribute('href')!,
+					date: new Date(time?.getAttribute('datetime')!),
+					summary: article.querySelector(':scope &gt; details')?.textContent ?? undefined,
+				}
+			})
+		)
+	}, [source])
+	return posts
+}
+</code></pre><h2 id=前端路由>前端路由</h2><p>可以发现，上面代码中使用了 <code>useSource()</code> 这个 Hook，它的返回值是随着前端路由的变化，对最新 <code>main</code> 元素的引用：<pre><code class=language-typescript>// https://github.com/sxyazi/hugo-theme-lavias/blob/main/src/hooks/useSource.ts
+export const EMPTY_DIV = document.createElement('div')
+
+export const useSource = () =&gt; {
+	const location = useLocation()
+	const { source, path } = useContext(AppContext)
+
+	if (location.pathname !== path.current?.last) {
+		return EMPTY_DIV
+	}
+	return source
+}
+</code></pre><p>这里使用了 <code>AppContext</code>，这是一个 custom context，主要的逻辑都在这里面实现：<pre><code class=language-tsx>// https://github.com/sxyazi/hugo-theme-lavias/blob/main/src/providers/AppProvider.ts
+export const AppContext = createContext&lt;{
+	source: HTMLElement
+	path: RefObject&lt;{ entry: string; last: string }&gt;
+}&gt;({
+	source: EMPTY_DIV,
+	path: createRef(),
+})
+
+export const AppProvider = ({ children }: { children: ComponentChildren }) =&gt; {
+	const location = useLocation()
+	const path = useRef({ entry: location.pathname, last: location.pathname })
+	const [source, setSource] = useState&lt;HTMLElement&gt;(document.querySelector('main')!)
+
+	useEffect(() =&gt; {
+		if (location.pathname === path.current.last) {
+			return
+		} else if (location.pathname === path.current.entry) {
+			path.current.last = path.current.entry
+			setSource(document.querySelector('main')!)
+			return
+		} else {
+			path.current.last = location.pathname
+		}
+
+		setSource(EMPTY_DIV)
+		fetch(location.pathname)
+			.then((res) =&gt; res.text())
+			.then((res) =&gt; parse(res).querySelector('main')!)
+			.then(setSource)
+	}, [location])
+
+	return &lt;AppContext.Provider value={{ source, path }}&gt;{children}&lt;/AppContext.Provider&gt;
+}
+</code></pre><p>这个 context 被注入到 App 的根部，以便能够在任何位置都能使用它。<h2 id=构建>构建</h2><p>这部分是最麻烦的，由于 Vite 对项目结构的严苛要求，使得为了适配这类特殊场景，需要做的工作更多。为此，我写了一个单独的脚本做这件事：<pre><code class=language-javascript>// https://github.com/sxyazi/hugo-theme-lavias/blob/main/cmd.js
+const base = dirname(fileURLToPath(import.meta.url))
+switch (process.argv[2]) {
+	case 'dev':
+		const restore = replaceBase(true)
+		child_process.execSync('rm -rf dist')
+		try {
+			child_process.execSync('hugo -d themes/hugo-theme-lavias/dist --config config.yaml,themes/hugo-theme-lavias/hugo.dev.yaml', {
+				cwd: resolve(base, '../../'),
+			})
+		} finally {
+			restore()
+		}
+		child_process.spawnSync('pnpm', ['exec', 'vite', 'dev', 'dist', '--config', resolve(base, 'vite.config.js')], {
+			stdio: 'inherit',
+		})
+		break
+
+	case 'build':
+		child_process.execSync('rm -rf static/assets static/index.html')
+		child_process.spawnSync('pnpm', ['exec', 'vite', 'build', 'src', '--config', resolve(base, 'vite.config.js')], {
+			stdio: 'inherit',
+		})
+
+		replaceBase()
+		child_process.execSync('rm -rf static/index.html')
+		break
+}
+</code></pre><p>为了进入 dev 模式，在站点的根目录执行 <code>hugo</code> 构建，构建的资产放到 <code>themes/hugo-theme-lavias/dist</code>，即相对于该主题的 <code>dist</code> 目录下。<p>构建时我指定了 2 个配置文件，一个是站点本身的，一个是为了 development 而复写的一些配置：<pre><code class=language-yaml># https://github.com/sxyazi/hugo-theme-lavias/blob/main/hugo.dev.yaml
+minify:
+  disableHTML: true
+</code></pre><p>目前只是把 HTML 压缩关掉了，因为 Hugo 压缩后的 HTML 会删除部分 tag 的结束标记，而导致 babel 解析时出错。之后基于构建出的 <code>dist</code>，执行 <code>vite dev</code>，并指定上层的 <code>vite.config.js</code> 为配置文件：<pre><code class=language-javascript>// https://github.com/sxyazi/hugo-theme-lavias/blob/main/vite.config.ts
+export default defineConfig({
+	// ...
+	resolve: {
+		alias: {
+			'/src': resolve(__dirname, 'src'),
+		},
+	},
+})
+</code></pre><p>这里指定 <code>resolve</code> 的原因，是因为 <code>vite dev dist</code> 会以 <code>dist</code> 目录为 project root 寻找 <code>src</code>，然而 <code>src</code> 并不在 <code>dist</code> 里，而是与 <code>vite.config.js</code> 在同一层目录。<p>而对于最终构建，还需要为 Vite 指定构建目录，即构建到位于主题的 <code>static</code> 目录下，这个目录的文件会自动合并到 Hugo 站点中：<pre><code class=language-javascript>// https://github.com/sxyazi/hugo-theme-lavias/blob/main/vite.config.ts
+export default defineConfig({
+	// ...
+	build: {
+		emptyOutDir: false,
+		outDir: resolve(__dirname, 'static'),
+	},
+})
+</code></pre><p>其它像上面出现的 <code>extract</code>、<code>replaceBase</code> 等函数不再一一赘述，主要用途就是在 dev 时，将 <code>layouts/_default/baseof.html</code> 中的 script 替换为 <code>/src/main.tsx</code>；并在 build 时，将该 script 替换为实际构建出来的带 hash 的文件名，如 <code>/assets/index.d64dc623.js</code>，具体可以参考 <a href=https://github.com/sxyazi/hugo-theme-lavias/blob/main/cmd.js>cmd.js</a>。<h2 id=自动化>自动化</h2><p>现在需要每次在本地执行 <code>pnpm build</code>，并把构建的文件 push 上去。为了能够构建自动化，我添加了一个 GitHub Actions 的 <a href=https://github.com/sxyazi/hugo-theme-lavias/blob/main/.github/workflows/main.yaml>workflow</a>，它会在我 push 到 <code>main</code> 分支时自动完成构建，省去了本地构建的步骤。<h2 id=最后>最后</h2><p>由于这次把主题单独分离到了一个新的 repo，因此博客的构建脚本发生了一些变化，具体在<a href=/blog-deploy/>这篇文章</a>。</div><ul><li><a href=/tags/react>React</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

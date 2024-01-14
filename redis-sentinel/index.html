@@ -1,0 +1,57 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="Redis-Sentinel 是 Redis 官方推荐的高可用性(HA) 解决方案，当用 Redis 做 Master-slave 的高可用方案时，假如 master 宕机了，Redis 本身(包括它的很多客户端) 都没有实现自动进行主备切换，而 Redis-sentinel 本身也是一个独立运行的进程，它能监控多个 master-slave 集群，发"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="使用 Sentinel 完成自动化 Redis 监控"><meta property="og:description" content="Redis-Sentinel 是 Redis 官方推荐的高可用性(HA) 解决方案，当用 Redis 做 Master-slave 的高可用方案时，假如 master 宕机了，Redis 本身(包括它的很多客户端) 都没有实现自动进行主备切换，而 Redis-sentinel 本身也是一个独立运行的进程，它能监控多个 master-slave 集群，发"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/redis-sentinel/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-05-24T22:33:43+08:00"><meta property="article:modified_time" content="2017-05-24T22:33:43+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="使用 Sentinel 完成自动化 Redis 监控"><meta name=twitter:description content="Redis-Sentinel 是 Redis 官方推荐的高可用性(HA) 解决方案，当用 Redis 做 Master-slave 的高可用方案时，假如 master 宕机了，Redis 本身(包括它的很多客户端) 都没有实现自动进行主备切换，而 Redis-sentinel 本身也是一个独立运行的进程，它能监控多个 master-slave 集群，发"><title data-site="Sxyazi’s blog">使用 Sentinel 完成自动化 Redis 监控 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>使用 Sentinel 完成自动化 Redis 监控</h1><time datetime=2017-05-24T22:33:43+0800>05-24</time>
+<span>redis-sentinel</span><div><p>Redis-Sentinel 是 Redis 官方推荐的高可用性(HA) 解决方案，当用 Redis 做 Master-slave 的高可用方案时，假如 master 宕机了，Redis 本身(包括它的很多客户端) 都没有实现自动进行主备切换，而 Redis-sentinel 本身也是一个独立运行的进程，它能监控多个 master-slave 集群，发现 master 宕机后能进行自懂切换。<p>它的主要功能有以下几点：<ul><li>不时地监控 redis 是否按照预期良好地运行；<li>如果发现某个 redis 节点运行出现状况，能够通知另外一个进程(例如它的客户端)；<li>能够进行自动切换。当一个 master 节点不可用时，能够选举出 master 的多个 slave (如果有超过一个 slave 的话) 中的一个来作为新的 master，其它的 slave 节点会将它所追随的 master 的地址改为被提升为 master 的 slave 的新地址。</ul><h2 id=01-配置>01. 配置</h2><h3 id=启动-master-与-slave>启动 master 与 slave</h3><p>在上篇文章中已经做好了 redis 主从配置。由于要学习 Sentinel 的使用，所以还要再多加一个 slave 出来。<pre><code class=language-bash>redis-server ./redis.master.conf    # 6379
+redis-server ./redis.slave1.conf    # 6380
+redis-server ./redis.slave2.conf    # 6381
+
+ps aux | grep redis
+ha        2378  0.1  0.2  29356  2816 ?        Ssl  21:14   0:00 redis-server 127.0.0.1:6379
+ha        2384  0.1  0.3  29356  2872 ?        Ssl  21:14   0:00 redis-server 127.0.0.1:6380
+ha        2389  0.3  0.3  29356  2936 ?        Ssl  21:14   0:00 redis-server 127.0.0.1:6381
+ha        2394  0.0  0.1   4276  1840 pts/0    S+   21:14   0:00 grep --color=auto redis
+</code></pre><h3 id=配置-sentinel>配置 Sentinel</h3><pre><code class=language-bash># 拷贝一份配置文件
+ha@alh:~/redis $ cp /etc/redis/sentinel.conf .
+</code></pre><p>文件内容：<pre><code class=language-ini># sentinel 端口
+port 26379
+
+# 所要监视的master，&quot;mymaster&quot; 是自定义的项目名称，
+# 最后的数字代表同时有N个sentinel程序都判定master挂了，
+# 才会去执行主从切换操作的。
+sentinel monitor mymaster 127.0.0.1 6379 1
+
+# 检测超时时间(毫秒) 如果超过这个时间还没响应，或响应错误，
+# 则是认为master挂了.
+sentinel down-after-milliseconds mymaster 30000
+
+# 切换主从时，每次只允许一个 salve 同时同步数据
+sentinel parallel-syncs mymaster 1
+
+# 主从切换超时时间(毫秒)，若超过此时间则表示切换失败
+sentinel failover-timeout mymaster 180000
+</code></pre><p>启动 Sentinel：<pre><code class=language-bash>ha@alh:~/redis $ redis-sentinel ./sentinel.conf
+</code></pre><h2 id=02-实验>02. 实验</h2><h3 id=连接上分别看下状态>连接上分别看下状态</h3><pre><code class=language-bash>ha@alh:~ $ redis-cli -p 6379
+127.0.0.1:6379&gt; info replication
+# Replication
+role:master         # 主
+connected_slaves:2
+slave0:ip=127.0.0.1,port=6380,state=online,offset=22816,lag=0
+slave1:ip=127.0.0.1,port=6381,state=online,offset=22816,lag=1
+
+
+ha@alh:~ $ redis-cli -p 6380
+127.0.0.1:6380&gt; info replication
+# Replication
+role:slave          # 从
+master_host:127.0.0.1
+master_port:6379    # 6379端口
+master_link_status:up
+</code></pre><h3 id=把-master-关掉>把 master 关掉</h3><pre><code class=language-bash>127.0.0.1:6379&gt; shutdown
+not connected&gt;
+</code></pre><h3 id=观察-slave-状态>观察 slave 状态</h3><pre><code class=language-bash>127.0.0.1:6380&gt; info replication
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6381    # master 变成了 6381
+master_link_status:up
+</code></pre><h2 id=03-总结>03. 总结</h2><p>从上面的试验可以看出，Sentinel 确实起到了作用。当 master(6379) 挂了的时候，6381 自动切换成为了新的 master。<p>那么为什么是 6381 变成 master 呢？我想让 6380 成为 master 需要怎么做呢？<p>只需要改一下 slave 的配置文件就行了，把里面的 <code>slave-priority</code> 权重选项改的更小一些。</div><ul><li><a href=/tags/redis>Redis</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

@@ -1,0 +1,104 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="最近学习了一下 Go 语言，发现里面很多东西都和其他语言都不太一样。下面是学习过程中对 Go 中的指针部分做的一些片段性的笔记。 01. 数组指针 package main import &#34;fmt&#34; func main() { // 一个 [3]int 型数组 arr := [...]int{1, 2, 3} p := &arr // 一个指向 [3]int 型数组的指针 test(p) // 传"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="Golang 指针的一些零散笔记"><meta property="og:description" content="最近学习了一下 Go 语言，发现里面很多东西都和其他语言都不太一样。下面是学习过程中对 Go 中的指针部分做的一些片段性的笔记。 01. 数组指针 package main import &#34;fmt&#34; func main() { // 一个 [3]int 型数组 arr := [...]int{1, 2, 3} p := &arr // 一个指向 [3]int 型数组的指针 test(p) // 传"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/golang-cheatsheet/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-09-12T18:12:21+08:00"><meta property="article:modified_time" content="2017-09-12T18:12:21+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="Golang 指针的一些零散笔记"><meta name=twitter:description content="最近学习了一下 Go 语言，发现里面很多东西都和其他语言都不太一样。下面是学习过程中对 Go 中的指针部分做的一些片段性的笔记。 01. 数组指针 package main import &#34;fmt&#34; func main() { // 一个 [3]int 型数组 arr := [...]int{1, 2, 3} p := &arr // 一个指向 [3]int 型数组的指针 test(p) // 传"><title data-site="Sxyazi’s blog">Golang 指针的一些零散笔记 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>Golang 指针的一些零散笔记</h1><time datetime=2017-09-12T18:12:21+0800>09-12</time>
+<span>golang-cheatsheet</span><div><p>最近学习了一下 Go 语言，发现里面很多东西都和其他语言都不太一样。下面是学习过程中对 Go 中的指针部分做的一些片段性的笔记。<h2 id=01-数组指针>01. 数组指针</h2><pre><code class=language-go>package main
+
+import &quot;fmt&quot;
+
+func main() {
+    // 一个 [3]int 型数组
+    arr := [...]int{1, 2, 3}
+
+    p := &amp;arr // 一个指向 [3]int 型数组的指针
+    test(p)   // 传递过去的是 arr 的引用
+
+    fmt.Println(arr) // [1 233 3]
+}
+
+func test(p *[3]int) {
+    fmt.Println(p[0]) // 1
+    p[1] = 233
+}
+</code></pre><h2 id=02-数组与切片的传递>02. 数组与切片的传递</h2><p>Go 里面的切片是长度可变的数组，但更准确来说是指向数组这一原始类型的指针变量，所以切片是个引用值。当用户数据大于其所指向的区块范围时，这时会分配并指向到一片新的内存区域。<pre><code class=language-go>package main
+
+import &quot;fmt&quot;
+
+func main() {
+    // 值传递
+    arr := [...]int{1, 2, 3}
+    fmt.Printf(&quot;%p ---&gt; &quot;, &amp;arr)
+    test1(arr)
+
+    // 引用传递
+    sli := arr[:]
+    fmt.Printf(&quot;%p ---&gt; &quot;, sli)
+    test2(sli)
+
+    // Result:
+    // 0xc4200161c0 ---&gt; 0xc420016200
+    // 0xc4200161c0 ---&gt; 0xc4200161c0
+}
+
+func test1(a [3]int) {
+    fmt.Printf(&quot;%p\n&quot;, &amp;a)
+}
+
+func test2(s []int) {
+    fmt.Printf(&quot;%p\n&quot;, s)
+}
+</code></pre><h2 id=03-使用-new-创建数组>03. 使用 new() 创建数组</h2><p><code>arr1 := [3]int{1, 2, 3}</code> 是创建了个叫 arr1 的 [3]int 型数组，<p><code>arr2 := new([3]int)</code> 是分配了个 [3]int 型的内存空间并将 arr2 指向了它，等同于 <code>arr2 := &[3]int{}</code><pre><code class=language-go>package main
+
+import &quot;fmt&quot;
+
+func main() {
+    arr1 := [3]int{1, 2, 3}
+    arr2 := new([3]int)
+
+    fmt.Println(arr1, arr2) // [1 2 3] &amp;[0 0 0]
+
+    test1(&amp;arr1)
+    test2(arr2) // 使用 new 创建的变量本身就是一个指针，不需要加 &amp; 符号
+
+    fmt.Println(arr1, arr2) // [233 2 3] &amp;[233 0 0]
+}
+
+func test1(a *[3]int) {
+    a[0] = 233
+}
+
+func test2(a *[3]int) {
+    a[0] = 233
+}
+</code></pre><h2 id=04-new-与-make-的区别>04. new 与 make 的区别</h2><ol><li>new 是用来分配内存的，而 make 是用来初始化的；<li>new(T) 返回一个指向 T 类型的零值指针地址，make(T) 返回一个类型为 T 的初始值；<li>make 只适用于 slice map channel 类型。</ol><pre><code class=language-go>package main
+
+import &quot;fmt&quot;
+
+func main() {
+    test2()
+}
+
+func test1() {
+    arr := [...]int{1, 2, 3}
+    sli := arr[:]
+    fmt.Printf(&quot;%p ---&gt; %p\n&quot;, &amp;arr, sli)
+
+    // 0xc4200161c0 ---&gt; 0xc4200161c0
+    // 证实：切片是指向数组的指针
+}
+
+func test2() {
+    arr := [...]int{1, 2, 3}
+
+    sli1 := arr[:]
+    fmt.Println(sli1)
+
+    sli2 := new([]int)
+    *sli2 = arr[:]
+    fmt.Println(*sli2)
+
+    fmt.Printf(&quot;%p ---&gt; %p ---&gt; %p\n&quot;, &amp;arr, sli1, sli2)
+
+    // 0xc4200161c0 ---&gt; 0xc4200161c0 ---&gt; 0xc42000a080
+    // 证实：sli2 得到了新分配的内存空间
+}
+</code></pre></div><ul><li><a href=/tags/golang>Golang</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

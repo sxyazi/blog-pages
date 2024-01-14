@@ -1,0 +1,73 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="前面写了关于 MySQL 主从配置的文章，这篇文章来写一下 Redis 的主从配置。相对于 MySQL 来说简单了很多。 01. 安装 sudo apt-get update sudo apt-get install redis-server mkdir /tmp/redis # 创建测试目录 02. 拷贝两份配置 ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.master.conf ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.slave.conf 03. 分别修改配置文件 redis.master.conf: daemonize yes # 守护进程 pidfile /var/run/redis_master.pid # PI"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="Redis 主从配置"><meta property="og:description" content="前面写了关于 MySQL 主从配置的文章，这篇文章来写一下 Redis 的主从配置。相对于 MySQL 来说简单了很多。 01. 安装 sudo apt-get update sudo apt-get install redis-server mkdir /tmp/redis # 创建测试目录 02. 拷贝两份配置 ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.master.conf ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.slave.conf 03. 分别修改配置文件 redis.master.conf: daemonize yes # 守护进程 pidfile /var/run/redis_master.pid # PI"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/redis-slaves/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-05-11T02:34:23+08:00"><meta property="article:modified_time" content="2017-05-11T02:34:23+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="Redis 主从配置"><meta name=twitter:description content="前面写了关于 MySQL 主从配置的文章，这篇文章来写一下 Redis 的主从配置。相对于 MySQL 来说简单了很多。 01. 安装 sudo apt-get update sudo apt-get install redis-server mkdir /tmp/redis # 创建测试目录 02. 拷贝两份配置 ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.master.conf ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.slave.conf 03. 分别修改配置文件 redis.master.conf: daemonize yes # 守护进程 pidfile /var/run/redis_master.pid # PI"><title data-site="Sxyazi’s blog">Redis 主从配置 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>Redis 主从配置</h1><time datetime=2017-05-11T02:34:23+0800>05-11</time>
+<span>redis-slaves</span><div><p>前面写了关于 MySQL 主从配置的文章，这篇文章来写一下 Redis 的主从配置。相对于 MySQL 来说简单了很多。<h2 id=01-安装>01. 安装</h2><pre><code class=language-bash>sudo apt-get update
+sudo apt-get install redis-server
+mkdir /tmp/redis  # 创建测试目录
+</code></pre><h2 id=02-拷贝两份配置>02. 拷贝两份配置</h2><pre><code class=language-bash>ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.master.conf
+ha@alh:~/redis $ cp /etc/redis/redis.conf ./redis.slave.conf
+</code></pre><h2 id=03-分别修改配置文件>03. 分别修改配置文件</h2><p><strong>redis.master.conf</strong>:<pre><code class=language-ini>daemonize yes                      # 守护进程
+pidfile /var/run/redis_master.pid  # PID文件
+dir /tmp/redis/                    # 数据存储目录
+
+port 6379                          # 监听端口
+bind 127.0.0.1                     # 监听地址，若要允许外网访问填写对应IP
+# requirepass abcd1234             # 密码
+
+appendonly yes                     # 开启AOF
+appendfilename master.aof          # AOF文件名
+# appendfsync no                   # AOF写入方式，交由操作系统
+# appendfsync always               # 每执行命令就写一次
+appendfsync everysec               # 每秒写一次
+
+dbfilename master.rdb              # RDB文件名
+auto-aof-rewrite-percentage 100    # AOF自动重写增长率
+auto-aof-rewrite-min-size 64mb     # AOF自动重写最小大小
+</code></pre><p><strong>redis.salve.conf</strong>:<pre><code class=language-ini>daemonize yes                     # 守护进程
+pidfile /var/run/redis_slave.pid  # PID文件
+
+port 6380                         # 监听端口
+bind 127.0.0.1                    # 监听地址，若要允许外网访问填写对应IP
+
+slaveof 127.0.0.1 6379            # 作为 127.0.0.1:6379 的Slave
+# masterauth abcd1234             # 密码认证
+
+dir /tmp/redis/                   # 数据存储目录
+dbfilename slave.rdb              # RDB文件名
+
+slave-read-only yes               # 只读
+</code></pre><h2 id=04-启动服务>04. 启动服务</h2><pre><code class=language-bash>ha@alh:~/redis $ redis-server ./redis.master.conf
+ha@alh:~/redis $ redis-server ./redis.slave.conf
+</code></pre><h2 id=05-查看状态>05. 查看状态</h2><pre><code class=language-bash># Master
+ha@alh:~/redis $ redis-cli
+127.0.0.1:6379&gt; info replication
+# Replication
+role:master
+connected_slaves:1
+slave0:ip=127.0.0.1,port=6380,state=online,offset=99,lag=0
+master_repl_offset:99
+repl_backlog_active:1
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:2
+repl_backlog_histlen:98
+
+# Slave
+ha@alh:~/redis $ redis-cli -p 6380
+127.0.0.1:6380&gt; info replication
+# Replication
+role:slave
+master_host:127.0.0.1
+master_port:6379
+master_link_status:up
+master_last_io_seconds_ago:6
+master_sync_in_progress:0
+slave_repl_offset:99
+slave_priority:100
+slave_read_only:1
+connected_slaves:0
+master_repl_offset:0
+repl_backlog_active:0
+repl_backlog_size:1048576
+repl_backlog_first_byte_offset:0
+repl_backlog_histlen:0
+</code></pre></div><ul><li><a href=/tags/redis>Redis</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

@@ -1,0 +1,39 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="基本概念 引用的本质就是指针，下面两行代码的底层逻辑是一致的 int *p = &a int &ref = a 如果添加 const 限制词，表示不能通过 *p 或 ref 间接修改 a 的值 const int *p = &a const int &ref = a // 等价于 int const *p = &a int const &ref = a 一般常用于参数声明，如 void foo(const int"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="C++ 引用与 const"><meta property="og:description" content="基本概念 引用的本质就是指针，下面两行代码的底层逻辑是一致的 int *p = &a int &ref = a 如果添加 const 限制词，表示不能通过 *p 或 ref 间接修改 a 的值 const int *p = &a const int &ref = a // 等价于 int const *p = &a int const &ref = a 一般常用于参数声明，如 void foo(const int"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/cpp-reference-with-const/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2021-11-22T21:19:15+08:00"><meta property="article:modified_time" content="2021-11-22T21:19:15+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="C++ 引用与 const"><meta name=twitter:description content="基本概念 引用的本质就是指针，下面两行代码的底层逻辑是一致的 int *p = &a int &ref = a 如果添加 const 限制词，表示不能通过 *p 或 ref 间接修改 a 的值 const int *p = &a const int &ref = a // 等价于 int const *p = &a int const &ref = a 一般常用于参数声明，如 void foo(const int"><title data-site="Sxyazi’s blog">C++ 引用与 const | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>C++ 引用与 const</h1><time datetime=2021-11-22T21:19:15+0800>11-22</time>
+<span>cpp-reference-with-const</span><div><h2 id=基本概念>基本概念</h2><p>引用的本质就是指针，下面两行代码的底层逻辑是一致的<pre><code class=language-cpp>int *p   = &amp;a
+int &amp;ref = a
+</code></pre><p>如果添加 const 限制词，表示不能通过 <code>*p</code> 或 <code>ref</code> 间接修改 <code>a</code> 的值<pre><code class=language-cpp>const int *p   = &amp;a
+const int &amp;ref = a
+</code></pre><pre><code class=language-cpp>// 等价于
+int const *p   = &amp;a
+int const &amp;ref = a
+</code></pre><p>一般常用于参数声明，如<pre><code class=language-cpp>void foo(const int *p)
+void foo(const int &amp;ref)
+</code></pre><p>如人们所知，引用只能指向变量。但添加 const 关键字的引用，可以指向临时值<pre><code class=language-cpp>int &amp;ref       = a   // ok
+int const &amp;ref = a   // ok
+</code></pre><pre><code class=language-cpp>int &amp;ref       = 10  // error
+int const &amp;ref = 10  // ok
+</code></pre><p>但是需要注意，非 const 引用不能指向 const 变量<pre><code class=language-cpp>const int a = 10
+</code></pre><pre><code class=language-cpp>int &amp;ref       = a  // error
+int const &amp;ref = a  // ok
+</code></pre><p>若 const 出现在 <code>*</code> 号后面，就代表指针变量 <code>p</code> 本身不可被修改<pre><code class=language-cpp>int* const p = &amp;a
+</code></pre><pre><code class=language-cpp>*p = 20  // ok
+ p = &amp;b  // error
+</code></pre><p>因此发现，const 关键字将修饰它右边的第一个元素。<h2 id=进阶写法>进阶写法</h2><h3 id=指向指针变量>指向指针变量</h3><pre><code class=language-cpp>int *p   = &amp;a
+int **pp = &amp;p
+</code></pre><pre><code class=language-cpp>const int *p   = &amp;a
+const int **pp = &amp;p
+</code></pre><p>最后一片代码中的 <code>pp</code> 类型为 <code>const int**</code>，表示 <code>**pp</code> 不可修改。<code>pp</code>、<code>*pp</code> 可以修改，其中 <code>*pp</code> 指向指针变量 <code>p</code>。<h3 id=引用指针变量>引用指针变量</h3><pre><code class=language-cpp>int* const &amp;ref = p
+// 等价于
+int* const *pointer = &amp;p
+</code></pre><p>表示 <code>pointer</code> 引用了一个 <code>int*</code> 类型的变量。<ul><li>由于 const 的修饰，无法通过 <code>*pointer</code> 改变指针 <code>p</code> 的指向；<li>但可以通过 <code>**pointer</code> 改变 <code>*p</code> 的值；<li>对应到引用，则是 <code>ref</code> 不可修改，<code>*ref</code> 可以修改。</ul><h3 id=引用指针常量>引用指针常量</h3><pre><code class=language-cpp>const int* &amp;ref = p
+// 等价于
+const int* *pointer = &amp;p
+</code></pre><p>由于 const 修饰它右边的第一个元素，因此 <code>pointer</code> 的类型为 <code>const int**</code>。<ul><li>其中 <code>**pointer</code> 不可修改，<code>*pointer</code> 可以修改；<li>对应到引用，则是 <code>*ref</code> 不可修改，<code>ref</code> 可以修改。</ul><h3 id=常引用指针常量>常引用指针常量</h3><pre><code class=language-cpp>// 以下两种声明都支持
+int* p = &amp;a
+const int* p = &amp;a
+</code></pre><pre><code class=language-cpp>const int* const &amp;ref = p
+// 等价于
+const int* const *pointer = &amp;p
+</code></pre><p>从后往前看，指针 <code>*pointer</code> 指向了一个 <code>const int*</code> 类型的变量。<ul><li>由于 <code>*pointer</code> 被 const 修饰，因此无法通过 <code>*pointer</code> 间接修改 <code>p</code> 的指向，故 <code>ref</code> 无法修改；<li>由于 <code>int*</code> 类型被 const 修饰，因此无法通过 <code>**pointer</code> 间接修改 <code>*p</code> 的值，故 <code>*ref</code> 无法修改；<li>因为最后一个 const 的出现，使得原本的 <code>const int**</code> 变为了 <code>const int*</code> 类型，又因为 const 具有向上兼容性，故同时支持 <code>int*</code> 与 <code>const int*</code> 两种类型。</ul></div><ul><li><a href=/tags/c++>C++</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>
