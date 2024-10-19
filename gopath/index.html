@@ -1,0 +1,53 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="项目的目录结构会影响整个项目的文件排布甚至是整个项目的文件架构。所以在开始编写代码之前要先明确项目的目录如何去安排。其它语言可能对项目结构没有什么要求，相对更加自由一些，而 Go 语言做了这方面的规定。这样"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="Golang 项目目录结构"><meta property="og:description" content="项目的目录结构会影响整个项目的文件排布甚至是整个项目的文件架构。所以在开始编写代码之前要先明确项目的目录如何去安排。其它语言可能对项目结构没有什么要求，相对更加自由一些，而 Go 语言做了这方面的规定。这样"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/gopath/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-09-16T17:02:53+08:00"><meta property="article:modified_time" content="2017-09-16T17:02:53+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="Golang 项目目录结构"><meta name=twitter:description content="项目的目录结构会影响整个项目的文件排布甚至是整个项目的文件架构。所以在开始编写代码之前要先明确项目的目录如何去安排。其它语言可能对项目结构没有什么要求，相对更加自由一些，而 Go 语言做了这方面的规定。这样"><title data-site="Sxyazi’s blog">Golang 项目目录结构 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>Golang 项目目录结构</h1><time datetime=2017-09-16T17:02:53+0800>09-16</time>
+<span>gopath</span><div><p>项目的目录结构会影响整个项目的文件排布甚至是整个项目的文件架构。所以在开始编写代码之前要先明确项目的目录如何去安排。其它语言可能对项目结构没有什么要求，相对更加自由一些，而 Go 语言做了这方面的规定。这样虽然失去了自由，但是却得到了目录结构的一致性。<h2 id=01-环境变量>01. 环境变量</h2><p>在安装 Go 语言时，会让你配置几个环境变量：<ul><li><strong>GOROOT</strong>：go 的安装位置<li><strong>GOPATH</strong>：go 的工作目录，即项目目录<li><strong>GOBIN</strong>：<code>go install</code> 编译后的二进制文件存储路径，默认为 <code>$GOPATH/bin</code> 目录</ul><p>可以通过 <code>go env</code> 查看到它们的值。<h2 id=02-目录结构>02. 目录结构</h2><p>假设 GOPATH 配置路径为 <code>~/test</code> ，GOBIN 配置为空，那么 test 的初始目录结构应该是这样的：<pre><code>test
+├── bin  # 存放编译后的二进制文件
+├── pkg  # 存放编译后的包文件
+└── src  # 存放源代码
+</code></pre><p>接下来进到 <code>src</code> 目录创建一个 <code>main.go</code> 的主程序文件：<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+)
+
+func main() {
+    fmt.Println(&quot;hello world!&quot;)
+}
+</code></pre><p>执行 <code>go run main.go</code> 可以看到 &ldquo;hello world!&rdquo; 的打印结果。现在的目录结构是这样的：<pre><code>test
+├── bin
+├── pkg
+└── src
+    └── main.go
+</code></pre><h2 id=03-自定义-package>03. 自定义 package</h2><p>我们自定义的包文件同样也放到 <code>src</code> 目录里面。首先先创建个名为 <code>foo</code> 的目录，并在里面创建一个 <code>foo.go</code> 的文件，其内容为：<pre><code class=language-go>package foo
+
+func ReturnVal() string {
+    return &quot;hello world!!&quot;
+}
+</code></pre><p>现在的目录结构是这样的：<pre><code>test
+├── bin
+├── pkg
+└── src
+    ├── main.go
+    └── foo
+        └── foo.go
+</code></pre><p>修改 main.go 的文件内容：<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;foo&quot;
+)
+
+func main() {
+    fmt.Println(foo.ReturnVal())
+}
+</code></pre><p>这时执行 <code>go run main.go</code> 会打印出 &ldquo;hello world!!&rdquo; 证明刚才编写的包成功引入进来了。<p>可以使用 <code>go install foo</code> 来编译并安装 foo 这个包，执行后的目录结构如下：<pre><code>test
+├── bin
+├── pkg  # 里面多了些东西
+│   └── darwin_amd64
+│       └── foo.a
+└── src
+    ├── main.go
+    └── foo
+        └── foo.go
+</code></pre><h2 id=04-包的命名>04. 包的命名</h2><p>从上面可以看出，定义了一个叫 <code>foo</code> 的包，并且创建了 <code>src/foo</code> 这个目录，在此目录中又有 <code>foo.go</code> 这个文件。下面将做一些实验性的行为。<p><strong>1. 修改目录名与文件名</strong>：<blockquote><p>将 foo 目录与 foo.go 文件重新命名为 bar 与 bar.go ，之后执行 <code>go run main.go</code> 发现抛出错误。<p>将 main.go 中的 <code>import "foo"</code> 修改为 <code>import "bar"</code> ，再次执行发现问题解除。</blockquote><p><strong>2. 修改 package 名</strong>：<blockquote><p>将 foo.go 文件中的 <code>package foo</code> 修改为 <code>package bar</code> ，之后执行 <code>go run main.go</code> 发现抛出错误。<p>将 main.go 中的 <code>foo.ReturnVal()</code> 修改为 <code>bar.ReturnVal()</code> ，再次执行发现问题解除。</blockquote><p><strong>3. 修改文件名</strong>：<blockquote><p>将 foo.go 文件重新命名为 <code>abc.go</code> ，之后执行 <code>go run main.go</code> 成功打印出结果。</blockquote><p><strong>结论</strong>：<ul><li>包的目录名会影响 import 操作<li>包的 package 名实际上是包的名字<li>修改目录中的文件名不会影响到包的正常工作</ul></div><ul><li><a href=/tags/golang>Golang</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

@@ -1,0 +1,353 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="这篇文章记录下，一个新的 macOS 需要做的配置，和安装的软件。 键盘布局 使用 Colemak 键盘布局，它比传统 QWERTY 更高效、合理。 在 System Settings - Keyboard - Input Sources - Edit… 中添加 Colemak 以替换 ABC，重新登入系统布局生效。 系统设置 # Auto hide the menubar defaults write -g _HIHideMenuBar"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="我的 macOS 配置"><meta property="og:description" content="这篇文章记录下，一个新的 macOS 需要做的配置，和安装的软件。 键盘布局 使用 Colemak 键盘布局，它比传统 QWERTY 更高效、合理。 在 System Settings - Keyboard - Input Sources - Edit… 中添加 Colemak 以替换 ABC，重新登入系统布局生效。 系统设置 # Auto hide the menubar defaults write -g _HIHideMenuBar"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/macos-setup/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2022-12-08T20:26:42+08:00"><meta property="article:modified_time" content="2022-12-08T20:26:42+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="我的 macOS 配置"><meta name=twitter:description content="这篇文章记录下，一个新的 macOS 需要做的配置，和安装的软件。 键盘布局 使用 Colemak 键盘布局，它比传统 QWERTY 更高效、合理。 在 System Settings - Keyboard - Input Sources - Edit… 中添加 Colemak 以替换 ABC，重新登入系统布局生效。 系统设置 # Auto hide the menubar defaults write -g _HIHideMenuBar"><title data-site="Sxyazi’s blog">我的 macOS 配置 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>我的 macOS 配置</h1><time datetime=2022-12-08T20:26:42+0800>12-08</time>
+<span>macos-setup</span><div><p>这篇文章记录下，一个新的 macOS 需要做的配置，和安装的软件。<h2 id=键盘布局>键盘布局</h2><p>使用 <a href=https://en.wikipedia.org/wiki/Colemak>Colemak</a> 键盘布局，它比传统 QWERTY 更高效、合理。<p>在 System Settings - Keyboard - Input Sources - Edit… 中添加 Colemak 以替换 ABC，重新登入系统布局生效。<h2 id=系统设置>系统设置</h2><pre><code class=language-bash># Auto hide the menubar
+defaults write -g _HIHideMenuBar -bool true
+
+# Enable full keyboard access for all controls
+defaults write -g AppleKeyboardUIMode -int 3
+
+# Enable press-and-hold repeating
+defaults write -g ApplePressAndHoldEnabled -bool false
+defaults write -g InitialKeyRepeat -int 10
+defaults write -g KeyRepeat -int 1
+
+# Disable &quot;Natural&quot; scrolling
+defaults write -g com.apple.swipescrolldirection -bool false
+
+# Disable smart dash/period/quote substitutions
+defaults write -g NSAutomaticDashSubstitutionEnabled -bool false
+defaults write -g NSAutomaticPeriodSubstitutionEnabled -bool false
+defaults write -g NSAutomaticQuoteSubstitutionEnabled -bool false
+
+# Disable automatic capitalization
+defaults write -g NSAutomaticCapitalizationEnabled -bool false
+
+# Using expanded &quot;save panel&quot; by default
+defaults write -g NSNavPanelExpandedStateForSaveMode -bool true
+defaults write -g NSNavPanelExpandedStateForSaveMode2 -bool true
+
+# Increase window resize speed for Cocoa applications
+defaults write -g NSWindowResizeTime -float 0.001
+
+# Save to disk (not to iCloud) by default
+defaults write -g NSDocumentSaveNewDocumentsToCloud -bool true
+
+# --- Set the system accent color
+defaults write -g AppleAccentColor -int 6
+
+# Jump to the spot that's clicked on the scroll bar
+defaults write -g AppleScrollerPagingBehavior -bool true
+
+# Prefer tabs when opening documents
+defaults write -g AppleWindowTabbingMode -string always
+</code></pre><p>Dock：<pre><code class=language-bash># Set icon size and dock orientation
+defaults write com.apple.dock tilesize -int 48
+defaults write com.apple.dock orientation -string left
+
+# Set dock to auto-hide, and transparentize icons of hidden apps (⌘H)
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock showhidden -bool true
+
+# Disable to show recents, and light-dot of running apps
+defaults write com.apple.dock show-recents -bool false
+defaults write com.apple.dock show-process-indicators -bool false
+
+# --- Unpin all apps
+defaults write com.apple.dock persistent-apps -array &quot;&quot;
+</code></pre><p>Finder：<pre><code class=language-bash># Allow quitting via ⌘Q
+defaults write com.apple.finder QuitMenuItem -bool true
+
+# Disable warning when changing a file extension
+defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+# Show all files and their extensions
+defaults write com.apple.finder AppleShowAllExtensions -bool true
+defaults write com.apple.finder AppleShowAllFiles -bool true
+
+# Show path bar, and layout as multi-column
+defaults write com.apple.finder ShowPathbar -bool true
+defaults write com.apple.finder FXPreferredViewStyle -string clmv
+
+# Search in current folder by default
+defaults write com.apple.finder FXDefaultSearchScope -string SCcf
+
+# --- Keep the desktop clean
+defaults write com.apple.finder ShowHardDrivesOnDesktop -bool false
+defaults write com.apple.finder ShowRemovableMediaOnDesktop -bool false
+defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool false
+defaults write com.apple.finder ShowMountedServersOnDesktop -bool false
+
+# Show directories first
+defaults write com.apple.finder _FXSortFoldersFirst -bool true
+
+# New window use the $HOME path
+defaults write com.apple.finder NewWindowTarget -string PfHm
+defaults write com.apple.finder NewWindowTargetPath -string &quot;file://$HOME/&quot;
+
+# Allow text selection in Quick Look
+defaults write com.apple.finder QLEnableTextSelection -bool true
+
+# Show metadata info, but not preview in info panel
+defaults write com.apple.finder FXInfoPanesExpanded -dict MetaData -bool true Preview -bool false
+</code></pre><p>Trackpad：<pre><code class=language-bash># Enable trackpad tap to click
+defaults write com.apple.AppleMultitouchTrackpad Clicking -bool true
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+
+# Enable 3-finger drag
+defaults write com.apple.AppleMultitouchTrackpad TrackpadThreeFingerDrag -bool true
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad TrackpadThreeFingerDrag -bool true
+</code></pre><p>Activity Monitor：<pre><code class=language-bash># Sort by CPU usage
+defaults write com.apple.ActivityMonitor SortColumn -string CPUUsage
+defaults write com.apple.ActivityMonitor SortDirection -int 0
+</code></pre><p>Launch Services：<pre><code class=language-bash># Disable quarantine for downloaded apps
+defaults write com.apple.LaunchServices LSQuarantine -bool false
+</code></pre><p>Safari：<pre><code class=language-bash># For better privacy
+defaults write com.apple.Safari UniversalSearchEnabled -bool false
+defaults write com.apple.Safari SuppressSearchSuggestions -bool true
+defaults write com.apple.Safari SendDoNotTrackHTTPHeader -bool true
+
+# Disable auto open downloads
+defaults write com.apple.Safari AutoOpenSafeDownloads -bool false
+
+# Enable Develop Menu, Web Inspector
+defaults write com.apple.Safari IncludeDevelopMenu -bool true
+defaults write com.apple.Safari IncludeInternalDebugMenu -bool true
+defaults write com.apple.Safari WebKitDeveloperExtras -bool true
+defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
+defaults write com.apple.Safari &quot;com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled&quot; -bool true
+</code></pre><p>Universal Access：<pre><code class=language-bash># Set the cursor size
+defaults write com.apple.universalaccess mouseDriverCursorSize -float 1.5
+</code></pre><p>Screen Capture：<pre><code class=language-bash># --- Set the filename which screencaptures should be written
+defaults write com.apple.screencapture name -string screenshot
+defaults write com.apple.screencapture include-date -bool false
+</code></pre><p>Desktop Services：<pre><code class=language-bash># Avoid creating .DS_Store files on USB or network volumes
+defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+</code></pre><p>Disk Images：<pre><code class=language-bash># Disable disk image verification
+defaults write com.apple.frameworks.diskimages skip-verify -bool true
+defaults write com.apple.frameworks.diskimages skip-verify-locked -bool true
+defaults write com.apple.frameworks.diskimages skip-verify-remote -bool true
+</code></pre><p>Crash Reporter：<pre><code class=language-bash># Disable crash reporter
+defaults write com.apple.CrashReporter DialogType -string none
+</code></pre><p>AdLib：<pre><code class=language-bash># Disable personalized advertising
+defaults com.apple.AdLib forceLimitAdTracking -bool true
+defaults com.apple.AdLib allowApplePersonalizedAdvertising -bool false
+defaults com.apple.AdLib allowIdentifierForAdvertising -bool false
+</code></pre><p>允许打开任何来源的应用：<pre><code class=language-bash>sudo spctl --master-disable
+</code></pre><p>上面执行完，注销重新登入即可生效。<h2 id=电源管理>电源管理</h2><pre><code class=language-bash>sudo pmset -a displaysleep 15
+sudo pmset -a sleep 20
+sudo pmset -a disksleep 30
+
+# Disable wake by network
+sudo pmset -a womp 0
+# Disable wake when power source (AC/battery) change
+sudo pmset -a acwake 0
+# Disable wake by other devices using the same iCloud id
+sudo pmset -a proximitywake 0
+
+# Disable TCP keepalive on sleeping, this will cause &quot;Find My Mac&quot; to be unavailable
+sudo pmset -a tcpkeepalive 0
+# Disable auto update, auto backup when sleeping
+sudo pmset -a powernap 0
+
+# Enable &quot;full light - half light - off&quot; screen transition, when going to sleep
+sudo pmset -a halfdim 1
+# Auto switch GPU for apps on battery, use separate GPU on charger
+sudo pmset -b gpuswitch 2
+sudo pmset -c gpuswitch 1
+
+# Auto hibernate after a period of time of sleeping
+sudo pmset -a standby 1
+# High power (&gt; `highstandbythreshold`), 2 hours hibernate
+sudo pmset -a standbydelayhigh 7200
+# Low power (&lt; `highstandbythreshold`), 1 hour hibernate
+sudo pmset -a standbydelaylow 3600
+# Sync memory data to disk, and stop powering the memory when hibernating
+sudo pmset -a hibernatemode 3
+# `highstandbythreshold` defaults to 50%
+</code></pre><h2 id=xcode-command-line-tools>Xcode Command Line Tools</h2><p>设置完后，第一件事是安装 Xcode Command Line Tools：<pre><code class=language-bash>xcode-select --install
+</code></pre><p>安装后，git、clang 啥的就能用了。以防万一，再记一个 reinstall 方法：<pre><code class=language-bash>sudo rm -rf /Library/Developer/CommandLineTools
+xcode-select --install
+</code></pre><h2 id=安装-homebrew>安装 Homebrew</h2><p>系统所有 App 都使用 Homebrew 管理，安装它：<pre><code class=language-bash>/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;
+</code></pre><p>对于上架 Mac App Store 的 App，通过 <a href=https://github.com/mas-cli/mas>mas</a> 优先从 Store 下载。用 brew 安装它：<pre><code class=language-bash>brew install mas
+</code></pre><p>这样所有 App 的自动检查更新都可以关掉，然后将下面 script 加到 crontab 里即可实现定时自动更新：<pre><code class=language-bash>brew update
+brew upgrade --greedy-auto-updates
+brew cleanup --prune=all
+
+mas upgrade
+</code></pre><h2 id=安装常用软件>安装常用软件</h2><p>Base<pre><code class=language-bash>brew install cmake less gnu-sed wget
+</code></pre><p>CLI<pre><code class=language-bash>brew install exa bat zoxide fd fzf ripgrep dust tldr tig btop tree tmux starship hyperfine
+brew install neovim
+
+# Network
+brew install nali aria2 dog httpie nmap telnet
+# Archive
+brew install unar sevenzip brotli upx rar
+# Graphic
+brew install ffmpeg graphviz exiftool ffmpegthumbnailer
+# JSON
+brew install jless jq jc
+# Writing
+brew install hugo
+# macOS
+brew install duti
+</code></pre><p>Utility<pre><code class=language-bash>brew install --cask adguard
+brew install --cask alfred
+brew install --cask 1password
+brew install --cask bettermouse
+brew install --cask maczip
+brew install --cask downie
+brew install --cask aerial
+
+# Terminal
+brew install --cask kitty
+
+# Browser
+brew tap homebrew/cask-versions
+brew install --cask google-chrome
+# brew install --cask google-chrome-canary
+brew install --cask firefox
+brew install --cask microsoft-edge
+
+# Filesync
+mas install 823766827  # OneDrive
+brew install --cask transmit
+</code></pre><p>GUI：<pre><code class=language-bash># Development
+brew install --cask visual-studio-code
+brew install --cask fork
+brew install --cask postman
+brew install --cask coderunner
+brew install --cask dash
+brew install --cask orbstack
+brew install --cask imhex
+brew install --cask wireshark
+brew install --cask proxyman
+brew install --cask another-redis-desktop-manager
+mas install 1295203466  # Microsoft Remote Desktop
+mas install 1296084683  # Cleaner for Xcode
+## brew install --cask altair-graphql-client
+## brew install --cask charles
+## brew install --cask paw
+
+# Database
+brew install --cask datagrip
+brew install --cask sequel-ace
+## mas install 1594061654  # Navicat Premium 16
+
+# Social
+brew install --cask telegram
+brew install --cask discord
+brew install --cask element
+mas install 836500024   # WeChat
+## brew install --cask lark
+## mas install 451108668   # QQ
+## mas install 1435447041  # DingTalk
+
+# Movie
+brew install --cask mpv
+brew install --cask iina
+brew install --cask spotify
+
+# Screen recording
+brew install --cask shottr
+brew install --cask kap
+brew install --cask screenflow
+brew install --cask obs
+
+# Writing
+brew install --cask notion
+brew install --cask obsidian
+brew install --cask raindropio
+mas install 1529448980  # Reeder 5
+## brew install --cask calibre
+
+# Disign
+brew install --cask sip
+brew install --cask omnigraffle
+## mas install 824183456   # Affinity Photo
+
+# Others
+mas install 966085870	 # TickTick
+mas install 1452523807  # Text Scanner
+## brew install --cask parallels
+## mas install 1453504509  # Dynamic Wallpaper Engine
+</code></pre><p>PL<pre><code class=language-bash># Golang
+brew install go
+
+# Node.js
+brew tap oven-sh/bun
+brew install node pnpm bun
+
+# Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Python
+brew install python
+
+# Lua
+brew install lua luarocks
+
+# PHP
+brew install php composer
+composer g require psy/psysh
+</code></pre><p>Fonts<pre><code class=language-bash>brew tap homebrew/cask-fonts  # You only need to do this once!
+brew install --cask font-sf-mono
+brew install --cask font-fira-code
+brew install --cask font-roboto-mono
+brew install --cask font-dejavu-sans-mono
+brew install --cask font-symbols-only-nerd-font
+brew install --cask sf-symbols
+</code></pre><h2 id=配置-ssh>配置 SSH</h2><p>SSH Key 全部由 1Password 管理。修改 <code>~/.ssh/config</code> 文件：<pre><code class=language-bash>Host *
+	IdentityAgent &quot;~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock&quot;
+
+Host github.com
+  Hostname ssh.github.com
+  Port 443
+  User git
+</code></pre><p>然后配置 Git 鉴权、签名，修改 <code>~/.gitconfig</code> 文件：<pre><code class=language-ini>[core]
+	editor = nvim
+	pager = less -FRX
+
+[user]
+	name = 33
+	email = 33@gmail.com
+	signingkey = ssh-ed25519 AAAAC3N...
+
+[gpg]
+	format = ssh
+
+[gpg &quot;ssh&quot;]
+	program = /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+
+[commit]
+	gpgsign = true
+
+[pull]
+	rebase = true
+
+[push]
+	default = current
+	autoSetupRemote = true
+
+[rebase]
+	autoStash = true
+</code></pre><h2 id=设置默认应用>设置默认应用</h2><pre><code class=language-bash>duti -s com.microsoft.VSCode .txt all
+duti -s com.microsoft.VSCode .ass all
+duti -s io.mpv .mkv all
+duti -s com.colliderli.iina .mp4 all
+</code></pre><h2 id=kitty>kitty</h2><p>多年使用 iTerm2，短暂斡旋 Alacritty 后，亦然转向了 kitty &ndash; 它同时具备 iTerm2 的功能，Alacritty 的<a href=https://sw.kovidgoyal.net/kitty/performance/#throughput>性能</a>，希望这是我的最后一款终端模拟器。安装它：<p>将 <a href=https://github.com/sxyazi/dotfiles/tree/main/kitty>配置文件</a> 克隆到 <code>~/.config/kitty</code> 即可完成配置，其中包含：<ul><li><p>使用 Catppuccin 配色<li><p>使用 <code>SF Mono, Regular, 16pt</code> 字体，<code>Symbols Nerd Font</code> 符号字体<li><p>使用 Colemak 的 <code>ueni</code> 四组按键作为上下左右：<ul><li><code>Alt-u</code>、<code>Alt-e</code> 快速上下滚动<li><code>Cmd-{ueni}</code> 窗口间跳转，<code>Cmd-Ctrl-{ueni}</code> 上下左右分屏<li><code>Cmd-Alt-{ueni}</code> 调换单个窗口位置，<code>Cmd-Shift-{ueni}</code> 调整单个窗口大小</ul><li><p><code>Cmd-/</code>、<code>Cmd-Shift-/</code> 快速滚动到上、下一条命令的位置，<code>Cmd-Alt-/</code> 只显示最后一条命令输出<li><p><code>Cmd-Enter</code> 创建新 Tab，<code>Cmd-[</code>、<code>Cmd-]</code> 前后切换 Tab，<code>Cmd-Alt-[</code>、<code>Cmd-Alt-]</code> 前后移动 Tab<li><p><code>Cmd-w</code> 关闭单个窗口，<code>Cmd-Shift-w</code> 关闭所有窗口（单个 Tab）<li><p><code>Cmd-r</code> 清屏，<code>Cmd-f</code> 搜索，<code>Cmd-Shift-f</code> 最大化终端（非全屏）<li><p><code>Cmd-o</code> 打开链接、<code>Cmd-q</code>、<code>Cmd-l</code>、<code>Cmd-p</code> 快速选择单字、行、路径<li><p>Neovim 集成：上面窗口管理相关操作同样适用 Neovim，无缝衔接<li><p>……</ul><h2 id=z-shell>Z shell</h2><p>多年使用 Fish shell 后，换到了 Zsh <em>w/o</em> Oh My Zsh。Fish 的开箱即用是卖点；可定制性差、Bash incompatible 是槽点。<p>使用以下命令安装，并设置为默认 Shell：<pre><code class=language-bash>brew install zsh
+echo /opt/homebrew/bin/zsh | sudo tee -a /etc/shells
+chsh -s /opt/homebrew/bin/zsh
+
+# For Intel
+# echo /usr/local/bin/zsh | sudo tee -a /etc/shells
+# chsh -s /usr/local/bin/zsh
+</code></pre><p>之后将 <a href=https://github.com/sxyazi/dotfiles/tree/main/zsh>配置文件</a> 克隆到 <code>~/.config/zsh</code> 即可配置完成。其中包含：<ul><li><a href=https://github.com/sxyazi/dotfiles/blob/main/zsh/.zshrc#L4>24 条常用 alias</a><li>Fish-like 语法高亮、自动提示、自动补全、子命令匹配，与 Fish 体验别无二致<li>统一 <code>ueni</code> 为各模式上下左右相关导航键，如候选菜单导航，Vi mode 光标移动，<code>Ctrl-{ni}</code> 行首、尾移动<li>Esc 进入 Vi mode<li>……</ul><h2 id=squirrel>Squirrel</h2><p>输入法使用开源的 Squirrel，安装它：<pre><code class=language-bash>brew install --cask squirrel
+</code></pre><p>安装后在 System Settings 删除所有 Input Sources，只保留 Colemak 与 Squirrel 两个。然后克隆 <a href=https://github.com/sxyazi/rime-config>rime-config</a>：<pre><code class=language-bash>rm -rf ~/Library/Rime
+git clone git@github.com:sxyazi/rime-config.git ~/Library/Rime
+</code></pre><p>切换到 Squirrel，按 Ctrl-Option-` 重新部署。最后下载 <a href=https://github.com/sxyazi/a11y/releases>sxyazi/a11y</a> 按键辅助工具，该工具包含以下功能：<ul><li>自动切输入法：切换 App 时，自动将输入法切到 Squirrel。也就是对所有 App 都使用 Squirrel，至于不同 App 的默认中/英模式，在 Squirrel 配置中指定<li>充分利用 R-Command：将其映射为 F19，目前将 Alfred 的呼出 hotkey 设置为 F19，Alfred Universal Actions 设置为 F19-L<li>特定于应用的快捷键：如在 Finder 中按下 Option-T、Option-C，分别对应在当前目录打开 kitty、VSCode</ul><h2 id=alfred>Alfred</h2><p><a href=https://www.alfredapp.com/universal-actions/>Universal Actions</a> 是 Alfred 最强大的功能，也是主要卖点。将 <a href=https://github.com/sxyazi/alfred-workflows>sxyazi/alfred-workflows</a> 导入，其中包括：<ul><li>常用汇率转换（Google Finance 实时数据）<li>UUID 生成<li>时间日期转换<li>常见编解码<li>MD5、SHA1、SHA256 计算<li>图片压缩（TODO）</ul><h2 id=ranger>ranger</h2><p>ranger 最后一个版本 v1.9.3 还在 2019 年，已经相当旧了。许多 bug 只在 master 被修复，因此需要从 Git 安装它。<p>由于 ranger 是个 Python 项目，这里使用 <code>pipx</code> 安装并管理它。先安装 <code>pipx</code>：<pre><code class=language-bash>brew install pipx
+</code></pre><p>然后安装 ranger：<pre><code class=language-bash>pipx install git+https://github.com/ranger/ranger.git
+pipx inject ranger-fm Pillow
+</code></pre><p>以后可以运行 <code>upgrade</code>、<code>upgrade-all</code> 更新单个或多个应用：<pre><code class=language-bash>pipx upgrade-all
+</code></pre><h2 id=logitech-unifying>Logitech Unifying</h2><p>鼠标 Bluetooth 会受 2.4Ghz Wi-Fi 影响，使用 Logitech 的 Unifying Receiver 会好很多。<p>它的配对软件没有 Homebrew formula，最后更新还在 2018，手动下载安装它：<a href=https://support.logi.com/hc/en-us/articles/360025297913>https://support.logi.com/hc/en-us/articles/360025297913</a><h2 id=bettermouse>BetterMouse</h2><p>用腻了 Magic Mouse，但又想要流畅的鼠标体验，使用 BetterMouse。安装后调整以下参数：<ul><li>Scroll tab<ul><li>Duration: 10<li>Brake point: 3<li>Speed: 5<li>Acceleration: 8<li>Hori speed: 10</ul><li>Cursor tab<ul><li>DPI: 1200</ul></ul><h2 id=其它>其它</h2><p>其它 mpv ranger yabai 等配置后面整理到 <a href=https://github.com/sxyazi/dotfiles>https://github.com/sxyazi/dotfiles</a></div><ul><li><a href=/tags/macos>macOS</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

@@ -1,0 +1,54 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="最近有个 Vue 项目，是使用 Vue-cli 构建起来的。Vue-Router 是使用的 HTML5 History 模式。这个模式是使用浏览器提供的 History 接口实现的，所以如果是在页面上通过点击链接往里面 push 一个新地址是没问题的，但是如果直接请求这个地址则"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="让 Vue-cli 支持 Netlify 的 Redirect"><meta property="og:description" content="最近有个 Vue 项目，是使用 Vue-cli 构建起来的。Vue-Router 是使用的 HTML5 History 模式。这个模式是使用浏览器提供的 History 接口实现的，所以如果是在页面上通过点击链接往里面 push 一个新地址是没问题的，但是如果直接请求这个地址则"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/vue-netlify-adaptation/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-11-02T19:37:15+08:00"><meta property="article:modified_time" content="2017-11-02T19:37:15+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="让 Vue-cli 支持 Netlify 的 Redirect"><meta name=twitter:description content="最近有个 Vue 项目，是使用 Vue-cli 构建起来的。Vue-Router 是使用的 HTML5 History 模式。这个模式是使用浏览器提供的 History 接口实现的，所以如果是在页面上通过点击链接往里面 push 一个新地址是没问题的，但是如果直接请求这个地址则"><title data-site="Sxyazi’s blog">让 Vue-cli 支持 Netlify 的 Redirect | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>让 Vue-cli 支持 Netlify 的 Redirect</h1><time datetime=2017-11-02T19:37:15+0800>11-02</time>
+<span>vue-netlify-adaptation</span><div><p>最近有个 Vue 项目，是使用 Vue-cli 构建起来的。Vue-Router 是使用的 <a href=https://router.vuejs.org/zh-cn/essentials/history-mode.html>HTML5 History</a> 模式。这个模式是使用浏览器提供的 History 接口实现的，所以如果是在页面上通过点击链接往里面 push 一个新地址是没问题的，但是如果直接请求这个地址则会 404 （因为这个地址并不是真实存在的，只是我们通过代码模拟出来的）。<p>所以 Vue-Router 的手册中也给出了解决方式：通过配置重写规则把 404 统一重定向到 index.html 文件。但是懒得自己配环境，所以直接用的 Netlify 提供的免费服务。<p>当然 Netlify 很强大，提供了 redirect 的功能，是通过添加 <code>_redirects</code> 规则文件到<strong>根目录</strong>下来实现的。具体可以参照：https://www.netlify.com/docs/redirects/<p>问题就是如何在 <code>npm run build</code> 的时候自动把 <code>_redirects</code> 文件添加到根目录呢？<h2 id=01-尝试>01. 尝试</h2><pre><code>.
+├── build
+├── config
+├── node_modules
+├── src
+└── static
+
+5 directories
+</code></pre><p>上面的是由 vue-cli 所构建出来的项目的目录结构。起初我尝试把 <code>_redirects</code> 放到 <code>static</code> 目录中，但是失败了。是因为 <code>npm run build</code> 后 <code>static</code> 目录中的文件并不是放到了根目录（这里是 <code>dist</code>）中，而是在根目录中的 <code>static</code> 目录内。<pre><code>dist
+├── index.html
+└── static
+    ├── _redirects  &lt;-- 在这里
+    ├── css
+    ├── fonts
+    └── js
+
+4 directories, 10 files
+</code></pre><h2 id=02-查资料>02. 查资料</h2><p>于是我 Google 了一圈，找到了这个 issues ：https://github.com/vuejs/vue-cli/issues/285，但是这貌似也不是我想要的。所以没办法了，只能自己动手了。<h2 id=03-瞎改>03. 瞎改</h2><p>看了眼 <code>package.json</code> 文件里的 build 是执行了 <code>node build/build.js</code> ，打开这个文件一直跟踪到了 <code>build/webpack.prod.conf.js</code> 文件里，在 90 行左右有这样的代码：<pre><code class=language-js>// copy custom static assets
+new CopyWebpackPlugin([
+	{
+		from: path.resolve(__dirname, '../static'),
+		to: config.build.assetsSubDirectory,
+		ignore: ['.*'],
+	},
+])
+</code></pre><p>使用了 <a href=https://github.com/webpack-contrib/copy-webpack-plugin>CopyWebpackPlugin</a> 这个插件把 static 中的文件拷贝到了 <code>config.build.assetsSubDirectory</code> 下。<p>assetsSubDirectory 的定义在 <code>config/index.js</code> 文件中，应该就是指向了 <code>dist/static</code> 这个目录。<pre><code class=language-js>module.exports = {
+  build: {
+    env: require('./prod.env'),
+    index: path.resolve(__dirname, '../dist/index.html'),
+    assetsRoot: path.resolve(__dirname, '../dist'),
+    assetsSubDirectory: 'static',  // &lt;-- 在这里
+    assetsPublicPath: '/',
+    productionSourceMap: true,
+    // ....
+</code></pre><p>所以我就改了一下 <code>build/webpack.prod.conf.js</code> 的代码：<pre><code class=language-diff>+    // copy _redirects file
++    new CopyWebpackPlugin([
++      {
++        from: path.resolve(__dirname, '../static/_redirects'),
++        to: config.build.assetsSubDirectory + '/..'
++      }
++    ]),
+     // copy custom static assets
+     new CopyWebpackPlugin([
+       {
+         from: path.resolve(__dirname, '../static'),
+         to: config.build.assetsSubDirectory,
+-        ignore: ['.*']
++        ignore: ['.*', '_redirects']
+       }
+     ])
+</code></pre><p>把 <code>_redirects</code> 文件复制到 dist/static 的上级目录 <code>/..</code> 中。完成啦~<h2 id=04-总结>04. 总结</h2><p>这种修改文件的方法可能是最简便的了，但是随便修改这些文件显得不是很专业嘛。所以大家如果有别的方法请告诉我。</div><ul><li><a href=/tags/vue.js>Vue.js</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

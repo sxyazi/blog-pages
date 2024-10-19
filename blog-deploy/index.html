@@ -1,0 +1,41 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="TL;DR 最近把博客渲染、部署的工作从我很久前自己写的 blog-deploy 迁移到了 Hugo，原因是前者功能太简单了，而又无心再去维护。顺便又优化了下博客样式，加入了近年来流行的暗色元素。 由于我的博客是全权托管在 GitHub 上的，以前 repo 全"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="使用 GitHub Actions 实现博客自动化部署"><meta property="og:description" content="TL;DR 最近把博客渲染、部署的工作从我很久前自己写的 blog-deploy 迁移到了 Hugo，原因是前者功能太简单了，而又无心再去维护。顺便又优化了下博客样式，加入了近年来流行的暗色元素。 由于我的博客是全权托管在 GitHub 上的，以前 repo 全"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/blog-deploy/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2020-07-26T21:12:16+08:00"><meta property="article:modified_time" content="2020-07-26T21:12:16+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="使用 GitHub Actions 实现博客自动化部署"><meta name=twitter:description content="TL;DR 最近把博客渲染、部署的工作从我很久前自己写的 blog-deploy 迁移到了 Hugo，原因是前者功能太简单了，而又无心再去维护。顺便又优化了下博客样式，加入了近年来流行的暗色元素。 由于我的博客是全权托管在 GitHub 上的，以前 repo 全"><title data-site="Sxyazi’s blog">使用 GitHub Actions 实现博客自动化部署 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>使用 GitHub Actions 实现博客自动化部署</h1><time datetime=2020-07-26T21:12:16+0800>07-26</time>
+<span>blog-deploy</span><div><h2 id=tldr>TL;DR</h2><p>最近把博客渲染、部署的工作从我很久前自己写的 <a href=https://github.com/sxyazi/blog-deploy>blog-deploy</a> 迁移到了 <a href=https://gohugo.io>Hugo</a>，原因是前者功能太简单了，而又无心再去维护。顺便又优化了下博客样式，加入了近年来流行的暗色元素。<p>由于我的博客是全权托管在 GitHub 上的，以前 repo 全部都是公开的，后来不想这样了，因为有些还没写完的文章我不想那么早 push 上去就被别人看到（内容需要沉淀才会有价值），但是为了在多个设备间同步又必须 push。所以我把博客的 repo 设置为了私有。但是随之而来的是私有 repo 不能用免费的 Travis，不能享有免费的 Pages 服务。<p>所以我选择了使用如下方式：<ul><li>原文仓库私有<li>单独开一个公开 repo 作为 Pages，部署在 <code>gh-pages</code> 分支<li>文章发布时针对性渲染，Hugo 里对应的就是 <code>draft: true</code></ul><h2 id=github-actions>GitHub Actions</h2><p>上面说了那么多，现在进入主题。GitHub Actions 是 GitHub 最近一段时间（被巨硬收购后）推出的一款持续集成服务。它相对于 <a href=https://travis-ci.org>Travis CI</a> 来说有更高的可玩性，更重要的是他对私有仓库免费！<p>一切准备就绪后，在 GitHub 创建两个 repo：<ul><li>blog：私有，用于放置 Hugo 和博客文章等文件；<li>blog-pages：公开，放置 Hugo 渲染出的博客静态文件；</ul><h2 id=创建部署密钥>创建部署密钥</h2><p>由于我们需要使用 GitHub Actions 实现自动化部署，所以需要给予对 <code>blog-pages</code> 仓库的写权限，这里我使用的是 GitHub 的 <code>Deploy keys</code> 功能。<p>使用如下指令可以创建部署密钥，执行后会在当前目录生成 <code>gh-pages</code>、<code>gh-pages.pub</code> 两个文件，前者是私钥，后者为公钥。<pre><code class=language-bash>ssh-keygen -t rsa -b 4096 -C &quot;noreply@github.com&quot; -f gh-pages -N &quot;&quot;
+</code></pre><p>然后打开 <a href=https://github.com/sxyazi/blog-pages>blog-pages</a> 仓库页面，找到顶部导航中的 <code>Settings</code>，点击后选择 <code>Deploy keys</code>，点击 <code>Add deploy key</code> 贴入公钥文件的内容。<p>还需要在 <code>blog</code> 这个私有仓库的 <code>Settings - Secrets - New secret</code> 界面添加私钥。其中 <code>Name</code> 一栏我叫 <code>ACTIONS_DEPLOY_KEY</code>，你也可以改别的，但是要同样替换掉下面 GitHub Actions 配置里的名字。<h2 id=添加-github-actions-配置>添加 GitHub Actions 配置</h2><p>在 <code>blog</code> 仓库根目录创建 <code>.github/workflows/deploy.yaml</code> 文件，后面的 <code>deploy.yaml</code> 文件名你可以自定义。<pre><code class=language-yaml>name: Build and Deploy
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@master
+      - name: Clone theme
+        run: |
+          git clone --depth 1 https://github.com/sxyazi/hugo-theme-lavias.git themes/hugo-theme-lavias
+      - name: Cache Hugo
+        id: cache-hugo
+        uses: actions/cache@v3
+        with:
+          path: /tmp/hugo
+          key: ${{ runner.os }}-hugo
+      - name: Setup Hugo
+        if: steps.cache-hugo.outputs.cache-hit != 'true'
+        run: |
+          wget https://github.com/gohugoio/hugo/releases/download/v0.102.2/hugo_extended_0.102.2_Linux-64bit.tar.gz -O hugo.tar.gz
+          tar fxz hugo.tar.gz -C /tmp &amp;&amp; chmod u+x /tmp/hugo
+      - name: Build
+        run: |
+          /tmp/hugo --minify
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          # cname: sxyz.blog
+          publish_dir: public
+          force_orphan: true
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          external_repository: sxyazi/blog-pages
+</code></pre><p>你需要将 <code>external_repository</code> 的值修改成你的公有仓库的名字。如果你有绑定域名的需要，把上面代码中的 <code>cname</code> 项解除注释改成你自己的域名就可以了，域名 DNS 需要 CNAME 解析到 <code>&lt;USERNAME>.github.io</code>，<code>&lt;USERNAME></code> 是你的 GitHub 用户名。<p>把上面文件发布到 GitHub 上，就会自动开始部署。如果构建流程没有报错的话，就代表博客已经成功部署了一次了。下次再去修改博客里的任何文件时就都会再重复这一自动步骤了。</div><ul><li><a href=/tags/git>Git</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

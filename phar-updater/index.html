@@ -1,0 +1,58 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="前两天有 PHP 的道友问我如何拿 PHP 实现程序自动更新。但是我对自动更新这个功能，说实话是并没有太大兴趣去搞的。我认为我把我写的程序源码放到 GitHub 这种代码托管平台上，然后如果你需要用的话就直接 clone 下来丢到服务器上跑就"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="使用 PHP 的 Phar 包实现程序自动更新"><meta property="og:description" content="前两天有 PHP 的道友问我如何拿 PHP 实现程序自动更新。但是我对自动更新这个功能，说实话是并没有太大兴趣去搞的。我认为我把我写的程序源码放到 GitHub 这种代码托管平台上，然后如果你需要用的话就直接 clone 下来丢到服务器上跑就"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/phar-updater/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2018-04-02T01:30:03+08:00"><meta property="article:modified_time" content="2018-04-02T01:30:03+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="使用 PHP 的 Phar 包实现程序自动更新"><meta name=twitter:description content="前两天有 PHP 的道友问我如何拿 PHP 实现程序自动更新。但是我对自动更新这个功能，说实话是并没有太大兴趣去搞的。我认为我把我写的程序源码放到 GitHub 这种代码托管平台上，然后如果你需要用的话就直接 clone 下来丢到服务器上跑就"><title data-site="Sxyazi’s blog">使用 PHP 的 Phar 包实现程序自动更新 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>使用 PHP 的 Phar 包实现程序自动更新</h1><time datetime=2018-04-02T01:30:03+0800>04-02</time>
+<span>phar-updater</span><div><p>前两天有 PHP 的道友问我如何拿 PHP 实现程序自动更新。但是我对自动更新这个功能，说实话是并没有太大兴趣去搞的。我认为我把我写的程序源码放到 GitHub 这种代码托管平台上，然后如果你需要用的话就直接 clone 下来丢到服务器上跑就行了，没必要再单独搞个 安装/升级/更新程序。可能这就是典型的程序员思维方式吧。<p>但是换个角度从产品的易用性、完整性来讲，确实加上这个功能对部分用户来讲会方便的多，也便于产品的推广。<p>总之，来探索一下如何使用 PHP 简单的实现程序自动更新。这里我想到的是用 Phar 包的方式实现。<h2 id=01-什么是-phar>01. 什么是 Phar</h2><p>维基百科是这样介绍的：<blockquote><p>PHAR（PHP 归档）文件是一种打包格式，通过将许多 PHP 代码文件和其他资源（例如图像，样式表等）捆绑到一个归档文件中来实现应用程序和库的分发。
+PHAR 文件可以是三种格式之一：tar 和 ZIP（它们与各自的工具相兼容），以及自定义的 PHAR 格式。无论使用何种格式，所有 PHAR 文件都使用 .phar 作为文件扩展名。使用标准的 tar 和 zip 应用程序可以创建和解压缩 Tar 和 Zip 格式的归档，而 PHAR 格式的归档需要使用自己写的 PHP 代码（利用 PHP 的 PHAR 扩展）或者使用 PEAR 的 PHP 归档包来创建和提取。</blockquote><p>简单来说就是把一堆文件打包成一个 phar 文件。和前端的 Webpack 等打包有点像，只不过 Webpack 是把一堆文件打包成一个 js 文件。<h2 id=02-目录结构>02. 目录结构</h2><pre><code>server
+├── build.php     // 构建 phar 文件的脚本
+├── bundle.phar   // 构建好的包
+├── index.php     // 用于提供更新服务(最新版本、更新代码)
+└── src           // 实际程序代码的目录
+    └── index.php
+client
+├── bootstrap.php  // 从 server 拉下来的更新代码，也就是 server 中 index.php 里的「更新代码」
+├── bundle.phar    // 最新的包，在 bootstrap.php 文件从 server 中拖下来的
+├── index.php      // 用来下载 bootstrap.php 文件
+└── version        // 最新版本，也就是 server 中 index.php 里的「最新版本」
+</code></pre><p>其中 server 目录中的代码是需要架设到服务器提供更新服务的。client 则是用户使用的代码。server 目录中的 <code>bundle.phar</code> 文件是 build.php 执行后产生的。client 目录中的 <code>bootstrap.php</code>、<code>bundle.phar</code>、<code>version</code> 文件是 index.php 被访问时所产生的。<h2 id=03-构建脚本-serverbuildphp>03. 构建脚本 [server/build.php]</h2><p>要想打包源码为 phar 文件需要先修改一下 php.ini 文件，将 <code>phar.readonly</code> 的值修改为 <code>Off</code> 。<pre><code class=language-ini>[phar]
+phar.readonly = Off
+</code></pre><p>然后将下面代码保存到 <code>server/bundle.php</code> 文件中：<pre><code class=language-php>&lt;?php
+
+$p = new Phar('bundle.phar');
+$p-&gt;startBuffering();
+$p-&gt;buildFromDirectory('src');
+$p-&gt;compressFiles(Phar::BZ2);
+$p-&gt;stopBuffering();
+
+echo 'done';
+</code></pre><p>这些代码会将 <code>src</code> 目录下的文件打包成 <code>bundle.phar</code> 文件，使用的压缩格式是 bz2。然后在终端执行此脚本即可开始构建（注意确保 src 目录存在）。<h2 id=04-更新服务-serverindexphp>04. 更新服务 [server/index.php]</h2><p>第二步执行完成后会产生一个 <code>server/bundle.phar</code> 文件，下面的代码依赖于此文件，所以确保第二步已经成功执行。<pre><code class=language-php>&lt;?php
+
+// 最新版本
+if (isset($_GET['version'])) {
+  exit(sha1_file('bundle.phar'));
+}
+
+
+// 更新代码
+$url = &quot;http&quot; . (isset($_SERVER['HTTPS']) ? 's' : '') . &quot;://{$_SERVER['HTTP_HOST']}/&quot;;
+
+echo &lt;&lt;&lt;EOF
+&lt;?php
+
+\$version = file_get_contents('{$url}?version');
+
+if (file_get_contents('version') !== \$version) {
+  file_put_contents('version', \$version);
+  file_put_contents('bundle.phar', file_get_contents('$url'));
+}
+
+require('bundle.phar');
+
+EOF;
+</code></pre><p>上面的代码主要是提供给客户端作 api 服务调用，只有 2 个功能：获取最新版本号、获取更新代码。<h2 id=05-客户端-clientindexphp>05. 客户端 [client/index.php]</h2><pre><code class=language-php>&lt;?php
+
+if (!is_file('bootstrap.php')) {
+  copy('http://127.0.0.1/phar', 'bootstrap.php');
+}
+
+require 'bootstrap.php';
+</code></pre><p>上面代码的用途是从更新服务端下载更新代码，然后保存为 bootstrap.php 文件并且引入。注意代码中的 <code>http://127.0.0.1</code> 是已架设更新服务的 ip 或域名地址。<h2 id=06-总结>06. 总结</h2><p>仅仅那么十几行代码就完成了自动更新的功能，可以说是相当简单粗暴了。不过在这里边也有许多可以扩展、可以优化的地方，这里就先做省略，主要是提供一种思路。而 Phar 最大的优势就是下载下来后可以直接 require 使用，从而避免了很多麻烦。</div><ul><li><a href=/tags/php>PHP</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

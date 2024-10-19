@@ -1,0 +1,449 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="介绍 AES（Advanced Encryption Standard）是由 NIST（National Institute of Standards and Technology，美国国家标准局）于 2001 年制定的“对称加密算法”，目的是为了取代当时已不安全的 DES 算法。它是 Rijndael 算法"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="从零实现 AES 加密算法"><meta property="og:description" content="介绍 AES（Advanced Encryption Standard）是由 NIST（National Institute of Standards and Technology，美国国家标准局）于 2001 年制定的“对称加密算法”，目的是为了取代当时已不安全的 DES 算法。它是 Rijndael 算法"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/aes-from-scratch/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2022-10-14T12:07:22+08:00"><meta property="article:modified_time" content="2022-10-14T12:07:22+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="从零实现 AES 加密算法"><meta name=twitter:description content="介绍 AES（Advanced Encryption Standard）是由 NIST（National Institute of Standards and Technology，美国国家标准局）于 2001 年制定的“对称加密算法”，目的是为了取代当时已不安全的 DES 算法。它是 Rijndael 算法"><title data-site="Sxyazi’s blog">从零实现 AES 加密算法 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>从零实现 AES 加密算法</h1><time datetime=2022-10-14T12:07:22+0800>10-14</time>
+<span>aes-from-scratch</span><div><h2 id=介绍>介绍</h2><p>AES（Advanced Encryption Standard）是由 NIST（National Institute of Standards and Technology，美国国家标准局）于 2001 年制定的“对称加密算法”，目的是为了取代当时已不安全的 DES 算法。它是 Rijndael 算法的变体，每个数据块采用固定的 128 位，密钥块采用可选的 128、192、256 位。<p>这篇文章介绍从零实现一个简单的 AES-128-ECB，其中 <code>128</code> 指采用 128 位密钥块，<code>ECB</code> 指采用 <a href=https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Electronic_codebook_(ECB)>Electronic codebook</a> 分组模式，并为长度不足 128 位的数据块填充 <code>0x00</code>。<p>本文代码部分选择使用 Python，因为其语法简单而强大，我想把更多时间、精力花在加解密流程上，而非语法细节上。本文所有代码仅供学习研究之用，不要用在生产环境！生产环境请使用流行、成熟的专用密码库，否则可能导致潜在的 Side-channel attack 和其它安全问题。<h2 id=加密流程>加密流程</h2><p>我们选择的 128 bits 密钥块，即 16 bytes，正好可以组成一个 4*4 的格子，每个格子单元 1 byte。</p><img src=/images/AES/grid.png class=inv width=500 align=center><p>AES 之所以保证安全的关键，是对每个数据块执行多轮加密，对于 128 bits 的密钥块，至少需要 $6+128/32=10$ 轮。<p>这里除数 32 是由于 Rijndael 的数据块、密钥块大小必须是 32 的倍数，最小 128，最大 256，只是 AES 仅选择了其中的 128、192、256 三组作为密钥块大小，数据块则固定为 128。<p>以下为每一轮所需的操作，我们把第一轮、最后一轮称为“初始轮”、“最终轮”，可以发现，它们只是“中间轮”的简化版：<ul><li>初始轮（1）<ul><li>AddRoundKey</ul><li>中间轮（2~9）<ul><li>SubBytes：将数据块中的数据，映射到 <a href=https://en.wikipedia.org/wiki/Rijndael_S-box>Rijndael S-box</a>，主要为了消除特征<li>ShiftRows：将数据块按“行”移位，以达到混淆的目的<li>MixColumns：将数据块按“列”与一个由多项式构成的 matrix，做矩阵乘法。目的是将单个错误扩散到整体，从而达到<a href=https://en.wikipedia.org/wiki/Avalanche_effect>雪崩效应</a>的预期，使其更难被破解<li>AddRoundKey：将本轮的 <code>key</code> 与数据块相加，由于使用 <a href=https://en.wikipedia.org/wiki/Finite_field>Galois field</a>，在代码中只是一个简单的 XOR</ul><li>最终轮（10）<ul><li>SubBytes<li>ShiftRows<li>AddRoundKey</ul></ul><h2 id=解密流程>解密流程</h2><p>写完加密，再写解密就很简单了，解密只需要将流程反过来：<ul><li>初始轮（10）<ul><li>AddRoundKey</ul><li>中间轮（9~2）<ul><li>ShiftRows（inverse）<li>SubBytes（inverse）<li>AddRoundKey<li>MixColumns（inverse）</ul><li>最终轮（1）<ul><li>ShiftRows（inverse）<li>SubBytes（inverse）<li>AddRoundKey</ul></ul><h2 id=subbytes>SubBytes</h2><p>SubBytes 是将 4*4 格子中的数据，映射到一个 16*16 的 <a href=https://en.wikipedia.org/wiki/Rijndael_S-box>Rijndael S-box</a> 中。<figure><img src=/images/AES/sub-bytes.svg class=bri width=500 align=center><figcaption>图片来源 https://en.wikipedia.org/wiki/Advanced_Encryption_Standard</figcaption></figure><p>你可以将 Wiki 中 S-box 的值挨个复制到你的代码中，或者直接使用下面的：<pre><code class=language-python>s_box = [
+	[0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
+	[0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0],
+	[0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15],
+	[0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75],
+	[0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84],
+	[0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf],
+	[0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8],
+	[0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2],
+	[0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73],
+	[0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb],
+	[0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79],
+	[0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08],
+	[0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a],
+	[0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e],
+	[0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf],
+	[0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
+]
+
+s_box_inv = [
+	[0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb],
+	[0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb],
+	[0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e],
+	[0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25],
+	[0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92],
+	[0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84],
+	[0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06],
+	[0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b],
+	[0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73],
+	[0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e],
+	[0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b],
+	[0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4],
+	[0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f],
+	[0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef],
+	[0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61],
+	[0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d]
+]
+</code></pre><p>其中 <code>s_box</code> 用于加密，<code>s_box_inv</code> 用于解密。最后我们实现 <code>sub_bytes</code> 函数：<pre><code class=language-python>def sub_bytes(grid, inv=False):
+	for i, v in enumerate(grid):
+		if inv:  # for decryption
+			grid[i] = s_box_inv[v &gt;&gt; 4][v &amp; 0xf]
+		else:
+			grid[i] = s_box[v &gt;&gt; 4][v &amp; 0xf]
+</code></pre><p>至此，这个步骤就算完成了。下面主要以 <code>s_box</code> 为例，介绍一下它们的值是怎么来的。<h3 id=s-box>S-box</h3><p>首先需要理解的是，S-box 只是一个 Input/output 系统，输入一个值 $c$，然后输出另外一个值。于是，有这么一个矩阵：<p>$$
+\begin{bmatrix}
+s_0 \\
+s_1 \\
+s_2 \\
+s_3 \\
+s_4 \\
+s_5 \\
+s_6 \\
+s_7
+\end{bmatrix}=\begin{bmatrix}
+1 & 0 & 0 & 0 & 1 & 1 & 1 & 1 \\
+1 & 1 & 0 & 0 & 0 & 1 & 1 & 1 \\
+1 & 1 & 1 & 0 & 0 & 0 & 1 & 1 \\
+1 & 1 & 1 & 1 & 0 & 0 & 0 & 1 \\
+1 & 1 & 1 & 1 & 1 & 0 & 0 & 0 \\
+0 & 1 & 1 & 1 & 1 & 1 & 0 & 0 \\
+0 & 0 & 1 & 1 & 1 & 1 & 1 & 0 \\
+0 & 0 & 0 & 1 & 1 & 1 & 1 & 1
+\end{bmatrix}\begin{bmatrix}
+b_0 \\
+b_1 \\
+b_2 \\
+b_3 \\
+b_4 \\
+b_5 \\
+b_6 \\
+b_7
+\end{bmatrix}+\begin{bmatrix}
+1 \\
+1 \\
+0 \\
+0 \\
+0 \\
+1 \\
+1 \\
+0
+\end{bmatrix}
+$$<p>其中 $[s_7, \cdots, s_0]$ 对应于 S-box 的输出，$[b_7, \cdots, b_0]$ 则对应于转换后的 $c$ 作为输入，它们都是 $\operatorname{GF}(2)$ 的元素。要想得到输出 $s$，需要经过两个步骤：<ul><li>求出输入 $c\text{ over }\operatorname{GF}(2^8)$ 的 $\operatorname{GF}(2)[x]/(x^8 + x^4 + x^3 + x + 1)$ 乘法逆元<li>然后将该乘法逆元，与上面的矩阵进行 <a href=https://en.wikipedia.org/wiki/Affine_transformation>Affine transformation</a> 运算</ul><p>对于最后的 Affine transformation，可以通过简单的 XOR 运算得出：<p>$$
+s=b\oplus (b\lll 1)\oplus (b\lll 2)\oplus (b\lll 3)\oplus (b\lll 4)\oplus 63_{16}
+$$<p>如果要计算 <code>s_box_inv</code>，则是上面步骤反过来，先 Affine transformation，再求乘法逆元。<p>这里就不贴代码了，Wikipedia 有一个 <a href=https://en.wikipedia.org/wiki/Rijndael_S-box#Example_implementation_in_C_language>C 实现的算法</a>，有兴趣可以看看。另外 Sam Trenholme 的 AES 加密系列，也给出了 <a href=https://www.samiam.org/s-box.html>关于 S-box 计算</a> 的代码，都是很值得参考的资料。<h2 id=shiftrows>ShiftRows</h2><p>ShiftRows 将数据块按行移位：第 i 行整体向左移动 (i-1) 格。<figure><img src=/images/AES/shift-rows.svg class=bri width=500 align=center><figcaption>图片来源 https://en.wikipedia.org/wiki/Advanced_Encryption_Standard</figcaption></figure><p>将它变成代码：<pre><code class=language-python>def shift_rows(grid, inv=False):
+	for i in range(4):
+		if inv:  # for decryption
+			grid[i::4] = grid[i::4][-i:] + grid[i::4][:-i]
+		else:
+			grid[i::4] = grid[i::4][i:] + grid[i::4][:i]
+</code></pre><p>其中 <code>grid[i::4]</code> 就正好表示第 <code>i</code> 行的所有数据，<code>i</code> 从 <code>0</code> 开始：<pre><code class=language-python>grid = list(range(16))
+grid[0::4]  # [0, 4, 8, 12]
+grid[1::4]  # [1, 5, 9, 13]
+</code></pre><p>最后通过简单的 <code>grid[i:] + grid[:i]</code> 实现移位。如第 2 行（<code>i = 1</code>），应该左移 1 格，那么有：<pre><code class=language-python>grid = [1, 2, 3, 4]
+grid = grid[1:] + grid[:1]
+print(grid)  # [2, 3, 4, 1]
+</code></pre><p>带负号的 <code>grid[-i:] + grid[:-i]</code> 同理，只是在解密时，由“向左移动”，变为了“向右移动”：<pre><code class=language-python>grid = [2, 3, 4, 1]
+grid = grid[-1:] + grid[:-1]
+print(grid)  # [1, 2, 3, 4]
+</code></pre><h2 id=mixcolumns>MixColumns</h2><p>MixColumns 是对数据块中的每一列，与一个特定的矩阵做乘法运算，从而产生一个新的值。<figure><img src=/images/AES/mix-columns.svg class=bri width=500 align=center><figcaption>图片来源 https://en.wikipedia.org/wiki/Advanced_Encryption_Standard</figcaption></figure><h3 id=矩阵>矩阵</h3><p>用作运算的矩阵可在 <a href=https://en.wikipedia.org/wiki/Rijndael_MixColumns#InverseMixColumns>Rijndael MixColumns</a> 中找到，大概长这样：<p>$$
+\begin{bmatrix}
+d_0 \\
+d_1 \\
+d_2 \\
+d_3
+\end{bmatrix}=\begin{bmatrix}
+2 & 3 & 1 & 1 \\
+1 & 2 & 3 & 1 \\
+1 & 1 & 2 & 3 \\
+3 & 1 & 1 & 2
+\end{bmatrix}\begin{bmatrix}
+b_0 \\
+b_1 \\
+b_2 \\
+b_3
+\end{bmatrix}
+$$<p>用于解密的矩阵：<p>$$
+\begin{bmatrix}
+b_0 \\
+b_1 \\
+b_2 \\
+b_3
+\end{bmatrix}=\begin{bmatrix}
+14 & 11 & 13 & 9 \\
+9 & 14 & 11 & 13 \\
+13 & 9 & 14 & 11 \\
+11 & 13 & 9 & 14
+\end{bmatrix}\begin{bmatrix}
+d_0 \\
+d_1 \\
+d_2 \\
+d_3
+\end{bmatrix}
+$$<p>这个矩阵的值怎么来的？<p>首先，数据块的每一列，可以被表示为一个多项式 $b(x) = b_3x^3 + b_2x^2 + b_1x + b_0$，其系数为 $\operatorname{GF}(2^8)$ 中的元素，模数为 $x^4 + 1$。其中 $\begin{bmatrix}b_3 & b_2 & b_1 & b_0\end{bmatrix}$ 分别对应该列的 4 个 bytes。<p>第二个是一个常数多项式，$a(x) = 3x^3 + x^2 + x + 2$，系数同样在 $\operatorname{GF}(2^8)$ 上，其反函数 $a^{-1}(x) = 11x^3 + 13x^2 + 9x + 14$。<p>当将它们相乘时，有：<p>$$
+\begin{aligned}
+a(x)\bullet b(x) = c(x) &= \left(a_3x^3 + a_2x^2 + a_1x + a_0\right)\bullet \left(b_3x^3 + b_2x^2 + b_1x + b_0\right) \\
+&= c_6x^6 + c_5x^5 + c_4x^4 + c_3x^3 + c_2x^2 + c_1x + c_0
+\end{aligned}
+$$<p>其中<p>$$
+\begin{align*}
+c_0 &= a_0\bullet b_0 \\
+c_1 &= a_1\bullet b_0\oplus a_0\bullet b_1 \\
+c_2 &= a_2\bullet b_0\oplus a_1\bullet b_1\oplus a_0\bullet b_2 \\
+c_3 &= a_3\bullet b_0\oplus a_2\bullet b_1\oplus a_1\bullet b_2\oplus a_0\bullet b_3 \\
+c_4 &= a_3\bullet b_1\oplus a_2\bullet b_2\oplus a_1\bullet b_3 \\
+c_5 &= a_3\bullet b_2\oplus a_2\bullet b_3 \\
+c_6 &= a_3\bullet b_3
+\end{align*}
+$$<p>符号 $\bullet$ 表示 $\operatorname{GF}(2^8)$ 上的乘法。$\oplus$ 表示 $\operatorname{GF}(2^8)$ 上的加法，对应于计算机中的 XOR 运算。<p>此时的 $c(x)$ 包含 7 项，需要将其模上 $x^4 + 1$，以简化为 4 项。如果我们对 $x^4 + 1$ 执行一些基本运算，会发现：<p>$$
+\begin{aligned}
+x^6\bmod{\left(x^4 + 1\right)} &= -x^2 = x^2\text{ over }\operatorname{GF} \left(2^8\right) \\
+x^5\bmod{\left(x^4 + 1\right)} &= -x = x \text{ over }\operatorname{GF} \left(2^8\right) \\
+x^4\bmod{\left(x^4 + 1\right)} &= -1 = 1 \text{ over }\operatorname{GF} \left(2^8\right)
+\end{aligned}
+$$<p>于是，可以说 $x^i\bmod{\left(x^4 + 1\right)} = x^{i\bmod{4}}$，因此：<p>$$
+\begin{aligned}
+c(x)&\bmod{\left(x^4 + 1\right)} \\
+&= \left(c_6x^6 + c_5x^5 + c_4x^4 + c_3x^3 + c_2x^2 + c_1x + c_0\right)\bmod{\left(x^4 + 1\right)} \\
+&= c_6x^{6\bmod{4}} + c_5x^{5\bmod{4}} + c_4x^{4\bmod{4}} + c_3x^{3\bmod{4}} + c_2x^{2\bmod{4}} + c_1x^{1\bmod{4}} + c_0x^{0\bmod{4}} \\
+&= c_6x^2 + c_5x + c_4+c_3x^3 + c_2x^2 + c_1x + c_0 \\
+&= c_3x^3 + \left(c_2\oplus c_6\right)x^2 + \left(c_1\oplus c_5\right)x + c_0\oplus c_4 \\
+&= d_3x^3 + d_2x^2 + d_1x+d_0
+\end{aligned}
+$$<p>其中<p>$$
+d_0 = c_0\oplus c_4 \\
+d_1 = c_1\oplus c_5 \\
+d_2 = c_2\oplus c_6 \\
+d_3 = c_3 \\
+$$<p>将未化简前的结果代入，得到：<p>$$
+d_0 = a_0\bullet b_0\oplus a_3\bullet b_1\oplus a_2\bullet b_2\oplus a_1\bullet b_3 \\
+d_1 = a_1\bullet b_0\oplus a_0\bullet b_1\oplus a_3\bullet b_2\oplus a_2\bullet b_3 \\
+d_2 = a_2\bullet b_0\oplus a_1\bullet b_1\oplus a_0\bullet b_2\oplus a_3\bullet b_3 \\
+d_3 = a_3\bullet b_0\oplus a_2\bullet b_1\oplus a_1\bullet b_2\oplus a_0\bullet b_3
+$$<p>最后将 $a$ 使用常数 $\begin{bmatrix}3&1&1&2\end{bmatrix}$ 的值替换，就是我们最终的矩阵值了：<p>$$
+d_0=2\bullet b_0\oplus 3\bullet b_1\oplus 1\bullet b_2\oplus 1\bullet b_3 \\
+d_1=1\bullet b_0\oplus 2\bullet b_1\oplus 3\bullet b_2\oplus 1\bullet b_3 \\
+d_2=1\bullet b_0\oplus 1\bullet b_1\oplus 2\bullet b_2\oplus 3\bullet b_3 \\
+d_3=3\bullet b_0\oplus 1\bullet b_1\oplus 1\bullet b_2\oplus 2\bullet b_3
+$$<h3 id=运算规则>运算规则</h3><p>我们的 $\operatorname{GF}(2^8)$ 可以有如下表示：<p>$$
+b(x) = b_7x^7 + b_6x^6 + b_5x^5 + b_4x^4 + b_3x^3 + b_2x^2 + b_1x + b_0
+$$<p>其中整数 $b_i\in[0,1]$，因此有：<ul><li><p>加法：$(00010110)_2 + (00100011)_2$<p>$$
+\begin{aligned}
+(x^4 + x^2 + x)\oplus (x^5 + x + 1) &= x^5 + x^4 + x^2 + 2x + 1 \\
+&= x^5 + x^4 + x^2 + 1
+\end{aligned}
+$$<li><p>乘法：$(00010110)_2 * (00100011)_2$<p>$$
+\begin{aligned}
+(x^4 + x^2 + x)\bullet (x^5 + x + 1) &= x^9 + x^5 + x^4 + x^7 + x^3 + x^2 + x^6 + x^2 + x \\
+&= x^9 + x^7 + x^6 + x^5 + x^4 + x^3 + 2x^2 + x \\
+&= x^9 + x^7 + x^6 + x^5 + x^4 + x^3 + x
+\end{aligned}
+$$<p>然后模上一个 n 次不可约多项式，如 AES 使用的 $m(x) = x^8 + x^4 + x^3 + x + 1$：<p>$$
+\begin{aligned}
+(x^9 + x^7 + x^6 + x^5 + x^4 + x^3 + x) \bmod{(x^8 + x^4 + x^3 + x + 1)} \\
+= x^7 + x^6 + x^3 + x^2 + x + 1
+\end{aligned}
+$$<li><p>xtime：对于 $x\bullet b(x)$，若 $b_7=0$，将 $b(x)$ 左移一位；若 $b_7=1$，将 $b(x)$ 左移一位，并与 <code>0x1B</code> 进行 XOR 运算。该操作记为 $b=\operatorname{xtime}(a)$：
+$$
+\begin{aligned}
+d_2 = b(x)\bullet 02 &= \operatorname{xtime}\left(b(x)\right) \\
+d_3 = b(x)\bullet 03 &= \operatorname{xtime}\left(b(x)\bullet\left(01\oplus d_2\right)\right) \\
+d_4 = b(x)\bullet 04 &= \operatorname{xtime}\left(d_2\right) \\
+d_8 = b(x)\bullet 08 &= \operatorname{xtime}\left(d_4\right) \\
+d_{10} = b(x)\bullet 10 &= \operatorname{xtime}\left(d_8\right) \\
+d_{13} = b(x)\bullet 13 &= \operatorname{xtime}\left(b(x)\bullet\left(01\oplus d_2\oplus d_{10}\right)\right)
+\end{aligned}
+$$</ul><h3 id=代码实现>代码实现</h3><p>实现这部分反而是最简单的：<pre><code class=language-python>def mix_columns(grid):
+	def mul_by_2(n):
+		s = (n &lt;&lt; 1) &amp; 0xff
+		if n &amp; 128:
+			s ^= 0x1b
+		return s
+
+	def mul_by_3(n):
+		return n ^ mul_by_2(n)
+
+	def mix_column(c):
+		return [
+			mul_by_2(c[0]) ^ mul_by_3(c[1]) ^ c[2] ^ c[3],  # [2 3 1 1]
+			c[0] ^ mul_by_2(c[1]) ^ mul_by_3(c[2]) ^ c[3],  # [1 2 3 1]
+			c[0] ^ c[1] ^ mul_by_2(c[2]) ^ mul_by_3(c[3]),  # [1 1 2 3]
+			mul_by_3(c[0]) ^ c[1] ^ c[2] ^ mul_by_2(c[3]),  # [3 1 1 2]
+		]
+
+	for i in range(0, 16, 4):
+		grid[i:i + 4] = mix_column(grid[i:i + 4])
+</code></pre><p>可以发现，上面代码仅包含用以加密的矩阵，那解密怎么办？对于该矩阵，有个 $M^4 = M \cdot M^{-1}$ 的特殊性质，因此解密时仅需重复 3 次加密过程即可：<pre><code class=language-python>grid = bytearray(range(16))
+
+# Encryption
+mix_columns(grid)
+print([i for i in grid])
+
+# Decryption
+mix_columns(grid)
+mix_columns(grid)
+mix_columns(grid)
+print([i for i in grid])
+</code></pre><p>执行结果：<pre><code>[2, 7, 0, 5, 6, 3, 4, 1, 10, 15, 8, 13, 14, 11, 12, 9]
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+</code></pre><p>其实除了用 <code>xtime</code> 直接算外，也可以通过查表的方式实现，这需要把 Multiply by 2、3、9、11、13、14 这些表都事先打好，但考虑到本文篇幅，又想尽可能帖出来完整代码，所以没选择这种。<h2 id=keyexpansion>KeyExpansion</h2><p>在继续 AddRoundKey 前，让我们先插一个 KeyExpansion，因为 AddRoundKey 所 <code>add</code> 的 <code>round key</code> 就是由 <code>KeyExpansion</code> 扩展出的。<p>在这里，我们独立地执行 10 轮迭代，生成之后用于 10 轮加密过程中每一轮的 <code>key</code>。首先，先让我们定义一个 <code>rc</code>：<pre><code class=language-python>rc = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d]
+</code></pre><p>每个不同轮次，都对应于一个不同的 <code>rc</code> 值，如第 3 轮，对应 <code>rc[2]</code>。该值将参与到 <code>key</code> 值的计算中：<pre><code class=language-python>def key_expansion(grid):
+	for i in range(10 * 4):
+		r = grid[-4:]
+		if i % 4 == 0:  # 对上一轮最后4字节自循环、S-box置换、轮常数异或，从而计算出当前新一轮最前4字节
+			for j, v in enumerate(r[1:] + r[:1]):
+				r[j] = s_box[v &gt;&gt; 4][v &amp; 0xf] ^ (rc[i // 4] if j == 0 else 0)
+
+		for j in range(4):
+			grid.append(grid[-16] ^ r[j])
+
+	return grid
+</code></pre><p>主要操作有 3 个：<ul><li>自循环：<code>r[1:] + r[:1]</code>，整体向前一格，即将第一个 byte 循环到最后<li>S-box 置换：<code>s_box[v >> 4][v & 0xf]</code>，使用 S-box 中的值替换当前 byte<li>轮常数异或：将当前 byte 与 <code>rc</code> 中的常数进行 XOR 运算。仅每 4 bytes 一组的第一个 byte 参与运算</ul><p>最后，仅需要将计算出的 <code>r[j]</code> 与 <code>grid</code> 的最后第 16 位字节 XOR。由于 <code>grid</code> 是一直在 append 的，所以每次拿到的 <code>grid[-16]</code> 都是相对本轮的、不同的值。<h2 id=addroundkey>AddRoundKey</h2><p>这是 4 个过程中最简单的一个，我们仅需要将 <code>KeyExpansion</code> 生成的、用于每轮的密钥块，与数据块相加。<figure><img src=/images/AES/add-round-key.svg class=bri width=500 align=center><figcaption>图片来源 https://en.wikipedia.org/wiki/Advanced_Encryption_Standard</figcaption></figure><p>代码也只有 3 行：<pre><code class=language-python>def add_round_key(grid, round_key):
+	for i in range(16):
+		grid[i] ^= round_key[i]
+</code></pre><h2 id=加解密>加解密</h2><p>现在，让我们为这一系列步骤，创建两个包装函数，作为加密、解密的入口：<pre><code class=language-python>def encrypt(b, expanded_key):
+	# First round
+	add_round_key(b, expanded_key)
+
+	for i in range(1, 10):
+		sub_bytes(b)
+		shift_rows(b)
+		mix_columns(b)
+		add_round_key(b, expanded_key[i * 16:])
+
+	# Final round
+	sub_bytes(b)
+	shift_rows(b)
+	add_round_key(b, expanded_key[-16:])
+	return b
+</code></pre><p>解密<pre><code class=language-python>def decrypt(b, expanded_key):
+	# First round
+	add_round_key(b, expanded_key[-16:])
+
+	for i in range(9, 0, -1):
+		shift_rows(b, True)
+		sub_bytes(b, True)
+		add_round_key(b, expanded_key[i * 16:])
+		for _ in range(3): mix_columns(b)
+
+	# Final round
+	shift_rows(b, True)
+	sub_bytes(b, True)
+	add_round_key(b, expanded_key)
+	return b
+</code></pre><p>之后还得再加个函数，为数据分块、填充，并且执行密钥 <code>key</code> 扩展：<pre><code class=language-python>def aes(typ, key, msg):
+	expanded = key_expansion(bytearray(key))
+
+	# Pad the message to a multiple of 16 bytes
+	b = bytearray(msg)
+	if typ == 0:  # only for encryption
+		b = bytearray(msg + b'\x00' * (16 - len(msg) % 16))
+
+	# Encrypt/decrypt the message
+	for i in range(0, len(b), 16):
+		if typ == 0:
+			b[i:i + 16] = encrypt(b[i:i + 16], expanded)
+		else:
+			b[i:i + 16] = decrypt(b[i:i + 16], expanded)
+	return bytes(b)
+</code></pre><h2 id=完整实现>完整实现</h2><pre><code class=language-python>s_box = [
+	[0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5, 0x30, 0x01, 0x67, 0x2b, 0xfe, 0xd7, 0xab, 0x76],
+	[0xca, 0x82, 0xc9, 0x7d, 0xfa, 0x59, 0x47, 0xf0, 0xad, 0xd4, 0xa2, 0xaf, 0x9c, 0xa4, 0x72, 0xc0],
+	[0xb7, 0xfd, 0x93, 0x26, 0x36, 0x3f, 0xf7, 0xcc, 0x34, 0xa5, 0xe5, 0xf1, 0x71, 0xd8, 0x31, 0x15],
+	[0x04, 0xc7, 0x23, 0xc3, 0x18, 0x96, 0x05, 0x9a, 0x07, 0x12, 0x80, 0xe2, 0xeb, 0x27, 0xb2, 0x75],
+	[0x09, 0x83, 0x2c, 0x1a, 0x1b, 0x6e, 0x5a, 0xa0, 0x52, 0x3b, 0xd6, 0xb3, 0x29, 0xe3, 0x2f, 0x84],
+	[0x53, 0xd1, 0x00, 0xed, 0x20, 0xfc, 0xb1, 0x5b, 0x6a, 0xcb, 0xbe, 0x39, 0x4a, 0x4c, 0x58, 0xcf],
+	[0xd0, 0xef, 0xaa, 0xfb, 0x43, 0x4d, 0x33, 0x85, 0x45, 0xf9, 0x02, 0x7f, 0x50, 0x3c, 0x9f, 0xa8],
+	[0x51, 0xa3, 0x40, 0x8f, 0x92, 0x9d, 0x38, 0xf5, 0xbc, 0xb6, 0xda, 0x21, 0x10, 0xff, 0xf3, 0xd2],
+	[0xcd, 0x0c, 0x13, 0xec, 0x5f, 0x97, 0x44, 0x17, 0xc4, 0xa7, 0x7e, 0x3d, 0x64, 0x5d, 0x19, 0x73],
+	[0x60, 0x81, 0x4f, 0xdc, 0x22, 0x2a, 0x90, 0x88, 0x46, 0xee, 0xb8, 0x14, 0xde, 0x5e, 0x0b, 0xdb],
+	[0xe0, 0x32, 0x3a, 0x0a, 0x49, 0x06, 0x24, 0x5c, 0xc2, 0xd3, 0xac, 0x62, 0x91, 0x95, 0xe4, 0x79],
+	[0xe7, 0xc8, 0x37, 0x6d, 0x8d, 0xd5, 0x4e, 0xa9, 0x6c, 0x56, 0xf4, 0xea, 0x65, 0x7a, 0xae, 0x08],
+	[0xba, 0x78, 0x25, 0x2e, 0x1c, 0xa6, 0xb4, 0xc6, 0xe8, 0xdd, 0x74, 0x1f, 0x4b, 0xbd, 0x8b, 0x8a],
+	[0x70, 0x3e, 0xb5, 0x66, 0x48, 0x03, 0xf6, 0x0e, 0x61, 0x35, 0x57, 0xb9, 0x86, 0xc1, 0x1d, 0x9e],
+	[0xe1, 0xf8, 0x98, 0x11, 0x69, 0xd9, 0x8e, 0x94, 0x9b, 0x1e, 0x87, 0xe9, 0xce, 0x55, 0x28, 0xdf],
+	[0x8c, 0xa1, 0x89, 0x0d, 0xbf, 0xe6, 0x42, 0x68, 0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16]
+]
+
+s_box_inv = [
+	[0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb],
+	[0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb],
+	[0x54, 0x7b, 0x94, 0x32, 0xa6, 0xc2, 0x23, 0x3d, 0xee, 0x4c, 0x95, 0x0b, 0x42, 0xfa, 0xc3, 0x4e],
+	[0x08, 0x2e, 0xa1, 0x66, 0x28, 0xd9, 0x24, 0xb2, 0x76, 0x5b, 0xa2, 0x49, 0x6d, 0x8b, 0xd1, 0x25],
+	[0x72, 0xf8, 0xf6, 0x64, 0x86, 0x68, 0x98, 0x16, 0xd4, 0xa4, 0x5c, 0xcc, 0x5d, 0x65, 0xb6, 0x92],
+	[0x6c, 0x70, 0x48, 0x50, 0xfd, 0xed, 0xb9, 0xda, 0x5e, 0x15, 0x46, 0x57, 0xa7, 0x8d, 0x9d, 0x84],
+	[0x90, 0xd8, 0xab, 0x00, 0x8c, 0xbc, 0xd3, 0x0a, 0xf7, 0xe4, 0x58, 0x05, 0xb8, 0xb3, 0x45, 0x06],
+	[0xd0, 0x2c, 0x1e, 0x8f, 0xca, 0x3f, 0x0f, 0x02, 0xc1, 0xaf, 0xbd, 0x03, 0x01, 0x13, 0x8a, 0x6b],
+	[0x3a, 0x91, 0x11, 0x41, 0x4f, 0x67, 0xdc, 0xea, 0x97, 0xf2, 0xcf, 0xce, 0xf0, 0xb4, 0xe6, 0x73],
+	[0x96, 0xac, 0x74, 0x22, 0xe7, 0xad, 0x35, 0x85, 0xe2, 0xf9, 0x37, 0xe8, 0x1c, 0x75, 0xdf, 0x6e],
+	[0x47, 0xf1, 0x1a, 0x71, 0x1d, 0x29, 0xc5, 0x89, 0x6f, 0xb7, 0x62, 0x0e, 0xaa, 0x18, 0xbe, 0x1b],
+	[0xfc, 0x56, 0x3e, 0x4b, 0xc6, 0xd2, 0x79, 0x20, 0x9a, 0xdb, 0xc0, 0xfe, 0x78, 0xcd, 0x5a, 0xf4],
+	[0x1f, 0xdd, 0xa8, 0x33, 0x88, 0x07, 0xc7, 0x31, 0xb1, 0x12, 0x10, 0x59, 0x27, 0x80, 0xec, 0x5f],
+	[0x60, 0x51, 0x7f, 0xa9, 0x19, 0xb5, 0x4a, 0x0d, 0x2d, 0xe5, 0x7a, 0x9f, 0x93, 0xc9, 0x9c, 0xef],
+	[0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61],
+	[0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d]
+]
+
+rc = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36, 0x6c, 0xd8, 0xab, 0x4d]
+
+def sub_bytes(grid, inv=False):
+	for i, v in enumerate(grid):
+		if inv:  # for decryption
+			grid[i] = s_box_inv[v &gt;&gt; 4][v &amp; 0xf]
+		else:
+			grid[i] = s_box[v &gt;&gt; 4][v &amp; 0xf]
+
+def shift_rows(grid, inv=False):
+	for i in range(4):
+		if inv:  # for decryption
+			grid[i::4] = grid[i::4][-i:] + grid[i::4][:-i]
+		else:
+			grid[i::4] = grid[i::4][i:] + grid[i::4][:i]
+
+def mix_columns(grid):
+	def mul_by_2(n):
+		s = (n &lt;&lt; 1) &amp; 0xff
+		if n &amp; 128:
+			s ^= 0x1b
+		return s
+
+	def mul_by_3(n):
+		return n ^ mul_by_2(n)
+
+	def mix_column(c):
+		return [
+			mul_by_2(c[0]) ^ mul_by_3(c[1]) ^ c[2] ^ c[3],  # [2 3 1 1]
+			c[0] ^ mul_by_2(c[1]) ^ mul_by_3(c[2]) ^ c[3],  # [1 2 3 1]
+			c[0] ^ c[1] ^ mul_by_2(c[2]) ^ mul_by_3(c[3]),  # [1 1 2 3]
+			mul_by_3(c[0]) ^ c[1] ^ c[2] ^ mul_by_2(c[3]),  # [3 1 1 2]
+		]
+
+	for i in range(0, 16, 4):
+		grid[i:i + 4] = mix_column(grid[i:i + 4])
+
+def key_expansion(grid):
+	for i in range(10 * 4):
+		r = grid[-4:]
+		if i % 4 == 0:  # 对上一轮最后4字节自循环、S-box置换、轮常数异或，从而计算出当前新一轮最前4字节
+			for j, v in enumerate(r[1:] + r[:1]):
+				r[j] = s_box[v &gt;&gt; 4][v &amp; 0xf] ^ (rc[i // 4] if j == 0 else 0)
+
+		for j in range(4):
+			grid.append(grid[-16] ^ r[j])
+
+	return grid
+
+def add_round_key(grid, round_key):
+	for i in range(16):
+		grid[i] ^= round_key[i]
+
+def encrypt(b, expanded_key):
+	# First round
+	add_round_key(b, expanded_key)
+
+	for i in range(1, 10):
+		sub_bytes(b)
+		shift_rows(b)
+		mix_columns(b)
+		add_round_key(b, expanded_key[i * 16:])
+
+	# Final round
+	sub_bytes(b)
+	shift_rows(b)
+	add_round_key(b, expanded_key[-16:])
+	return b
+
+def decrypt(b, expanded_key):
+	# First round
+	add_round_key(b, expanded_key[-16:])
+
+	for i in range(9, 0, -1):
+		shift_rows(b, True)
+		sub_bytes(b, True)
+		add_round_key(b, expanded_key[i * 16:])
+		for _ in range(3): mix_columns(b)
+
+	# Final round
+	shift_rows(b, True)
+	sub_bytes(b, True)
+	add_round_key(b, expanded_key)
+	return b
+
+def aes(typ, key, msg):
+	expanded = key_expansion(bytearray(key))
+
+	# Pad the message to a multiple of 16 bytes
+	b = bytearray(msg)
+	if typ == 0:  # only for encryption
+		b = bytearray(msg + b'\x00' * (16 - len(msg) % 16))
+
+	# Encrypt/decrypt the message
+	for i in range(0, len(b), 16):
+		if typ == 0:
+			b[i:i + 16] = encrypt(b[i:i + 16], expanded)
+		else:
+			b[i:i + 16] = decrypt(b[i:i + 16], expanded)
+	return bytes(b)
+</code></pre><p>最后，我们写点测试代码，尝试加解密数据：<pre><code class=language-python>if __name__ == '__main__':
+	key = b'sxyz.blog foobar'
+	enc = aes(0, key, b'Gonna find the answer, how to clear this up')
+	dec = aes(1, key, enc)
+
+	print('Encrypted:', enc)
+	print('Decrypted:', dec)
+</code></pre><p>运行后，结果：<pre><code class=language-python>Encrypted: b'v\xdbJ\x0c\xa3^;\xdf&quot;\xdc\xf6\x84\x95&amp;\x0bj.\xf8\x87\xe0R\x1a\xe2\xed\x15&quot;\xe9N\x91!\xcc\x86\xc6\xca\xca\x82\xd32\xe5\xa9\xf3\xfbD&lt;4c\x8a\xba'
+Decrypted: b'Gonna find the answer, how to clear this up\x00\x00\x00\x00\x00'
+</code></pre><p>正确！加解密工作正常，本文结束。<h2 id=参考资料>参考资料</h2><ul><li><a href=https://en.wikipedia.org/wiki/Advanced_Encryption_Standard>https://en.wikipedia.org/wiki/Advanced_Encryption_Standard</a><li><a href=https://en.wikipedia.org/wiki/Rijndael_MixColumns>https://en.wikipedia.org/wiki/Rijndael_MixColumns</a></ul></div><ul><li><a href=/tags/cryptography>Cryptography</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

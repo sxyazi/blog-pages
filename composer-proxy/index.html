@@ -1,0 +1,36 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="Composer 在 PHP 开发中绝对算得上是一个利器，现在几乎整天都离不开它了。但是下载依赖安装的过程却非常慢，因为是国外的嘛。这时候可能就需要使用某些手段来加速一下了。这里我使用的是拿 SS 作为一个代理服务器来实现的。（话"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="Composer 配合 SS 实现依赖加速下载"><meta property="og:description" content="Composer 在 PHP 开发中绝对算得上是一个利器，现在几乎整天都离不开它了。但是下载依赖安装的过程却非常慢，因为是国外的嘛。这时候可能就需要使用某些手段来加速一下了。这里我使用的是拿 SS 作为一个代理服务器来实现的。（话"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/composer-proxy/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-06-05T20:19:33+08:00"><meta property="article:modified_time" content="2017-06-05T20:19:33+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="Composer 配合 SS 实现依赖加速下载"><meta name=twitter:description content="Composer 在 PHP 开发中绝对算得上是一个利器，现在几乎整天都离不开它了。但是下载依赖安装的过程却非常慢，因为是国外的嘛。这时候可能就需要使用某些手段来加速一下了。这里我使用的是拿 SS 作为一个代理服务器来实现的。（话"><title data-site="Sxyazi’s blog">Composer 配合 SS 实现依赖加速下载 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>Composer 配合 SS 实现依赖加速下载</h1><time datetime=2017-06-05T20:19:33+0800>06-05</time>
+<span>composer-proxy</span><div><p>Composer 在 PHP 开发中绝对算得上是一个利器，现在几乎整天都离不开它了。但是下载依赖安装的过程却非常慢，因为是国外的嘛。这时候可能就需要使用某些手段来加速一下了。这里我使用的是拿 SS 作为一个代理服务器来实现的。（话说不是有个什么 <a href=https://pkg.phpcomposer.com/>中文镜像</a> 的么，不过可能由于强迫症原因不太喜欢用。）<p>其实拿 SS 来实现优势还是蛮大的，因为 SS 相当于一个 服务 的概念，不光可以为 Composer 提供服务，其他的比如 npm pip brew 什么的也都可以去那么用了。这里主要写 Composer 的原因是在使用 Composer 途中遇到了一个坑，记录一下。<h2 id=01-配置终端使用代理>01. 配置终端使用代理</h2><p>打开终端输入<pre><code class=language-bash>export http_proxy=socks5://127.0.0.1:1086
+export https_proxy=$http_proxy
+</code></pre><p>1086 是 SS 在本地所监听的端口，根据你自己的去配置。<p>但是这样有个问题，每次打开终端都要去输那么长的命令，非常费劲。所以我的做法是加了个 alias 。<pre><code class=language-bash>alias proxy=&quot;export http_proxy=socks5://127.0.0.1:1086; export https_proxy=socks5://127.0.0.1:1086&quot;
+</code></pre><p>这样所有在终端执行的程序应该就都能够使用代理服务器来得到加速的效果了。可以看下 IP 地址：<pre><code class=language-bash>☁  ~  curl ip.gs
+Current IP / 当前 IP: xx.xx.xx.xx
+ISP / 运营商:  sakura.ad.jp
+City / 城市: Tokyo Tokyo
+Country / 国家: Japan
+
+  /\_/\
+=( °w° )=
+  )   (  //
+ (__ __)//
+</code></pre><h2 id=02-composer-中踩到的一个坑>02. Composer 中踩到的一个坑</h2><p>以为配置好代理就可以用 Composer 了。但是在使用时却报错了。<pre><code class=language-bash>☁  test  composer install
+The &quot;https://packagist.org/packages.json&quot; file could not be downloaded: failed to open stream: Unable to find the socket transport &quot;socks5&quot; - did you forget to enable it when you configured PHP?
+</code></pre><p>为了解决这个问题，我尝试着重装了 PHP 的各种扩展（curl sockets openssl 等），发现并没有什么卵用。<p>之后我在 GitHub 发现了 <a href=https://github.com/composer/composer/issues/2900>这个 Issues</a> ，我猜测是 PHP 没有正确识别 socks5 协议。而 Composer 也对此没有做什么处理。其实我感觉加入这一行代码到 Composer 中情况可能会有所改变：<pre><code class=language-php>curl_setopt($ch, CURLOPT_PROXYTYPE, CURLPROXY_SOCKS5_HOSTNAME);
+</code></pre><p>但是最佳解决问题的方式是尽量不要改动 Composer 的代码。所以我找到了 proxychains。<h2 id=03-proxychains-工具配置>03. proxychains 工具配置</h2><p>安装 proxychains ：<pre><code class=language-bash>brew install proxychains-ng
+</code></pre><p>创建配置文件 <code>~/.proxychains/proxychains.conf</code> ，其内容为：<pre><code class=language-ini>strict_chain
+proxy_dns
+remote_dns_subnet 224
+tcp_read_time_out 15000
+tcp_connect_time_out 8000
+localnet 127.0.0.0/255.0.0.0
+quiet_mode
+
+[ProxyList]
+socks5  127.0.0.1 1086
+</code></pre><p>同样的，1086 修改成你的 SS 端口号。此时在执行 Composer 的时候就需要在前面添加上 <code>proxychains4</code> ：<pre><code class=language-bash>proxychains4 composer install
+</code></pre><p>不过名字有点长，可以也加个 alias<pre><code class=language-bash>alias pc=&quot;proxychains4&quot;
+alias composer=&quot;proxychains4 composer&quot;
+</code></pre><p>有个需要注意的问题是，proxychains 不能代理 /bin /sbin /usr/bin 这些目录中的程序。原因是 macOS 系统加了保护，可以使用下面的方式关掉，不过不太建议。<pre><code class=language-bash>csrutil disable
+reboot
+</code></pre></div><ul><li><a href=/tags/php>PHP</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

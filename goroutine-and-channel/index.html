@@ -1,0 +1,299 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="这篇文章记录了我学习 Go 语言中的协程与通道的一些笔记，是片断性的。 01. 无缓冲通道 ch := make(chan int) 无缓冲通道只能包含 1 个元素，读和写都是阻塞的。 02. 缓冲通道 ch := make(chan int, 5) 有缓冲的通道可以包含指定个数的元素，读和写都是异步"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="Golang 协程与通道"><meta property="og:description" content="这篇文章记录了我学习 Go 语言中的协程与通道的一些笔记，是片断性的。 01. 无缓冲通道 ch := make(chan int) 无缓冲通道只能包含 1 个元素，读和写都是阻塞的。 02. 缓冲通道 ch := make(chan int, 5) 有缓冲的通道可以包含指定个数的元素，读和写都是异步"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/goroutine-and-channel/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-09-24T14:33:22+08:00"><meta property="article:modified_time" content="2017-09-24T14:33:22+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="Golang 协程与通道"><meta name=twitter:description content="这篇文章记录了我学习 Go 语言中的协程与通道的一些笔记，是片断性的。 01. 无缓冲通道 ch := make(chan int) 无缓冲通道只能包含 1 个元素，读和写都是阻塞的。 02. 缓冲通道 ch := make(chan int, 5) 有缓冲的通道可以包含指定个数的元素，读和写都是异步"><title data-site="Sxyazi’s blog">Golang 协程与通道 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>Golang 协程与通道</h1><time datetime=2017-09-24T14:33:22+0800>09-24</time>
+<span>goroutine-and-channel</span><div><p>这篇文章记录了我学习 Go 语言中的协程与通道的一些笔记，是片断性的。<h2 id=01-无缓冲通道>01. 无缓冲通道</h2><pre><code class=language-go>ch := make(chan int)
+</code></pre><p>无缓冲通道只能包含 1 个元素，读和写都是阻塞的。<h2 id=02-缓冲通道>02. 缓冲通道</h2><pre><code class=language-go>ch := make(chan int, 5)
+</code></pre><p>有缓冲的通道可以包含指定个数的元素，读和写都是异步的，不会造成阻塞。<h2 id=03-死锁>03. 死锁</h2><pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    ch := make(chan int)
+    ch &lt;- 10
+    go test(ch)
+    time.Sleep(1e9)
+}
+
+func test(ch chan int) {
+    fmt.Println(&lt;-ch)
+}
+</code></pre><p>以上代码会出现死锁的问题，因为所有协程都处于休眠状态，向 ch 通道中写入元素后没有机会被读出。修改代码如下：<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    ch := make(chan int)
+    go test(ch)
+    ch &lt;- 10
+    time.Sleep(1e9)
+}
+
+func test(ch chan int) {
+    fmt.Println(&lt;-ch)
+}
+</code></pre><h2 id=04-带缓冲的与不带缓冲的效能测试>04. 带缓冲的与不带缓冲的效能测试</h2><p>可能由于异步的原因，带缓冲的平均要比不带缓冲的快一些。但是当把时间调大，缓冲数量调大后，发现带缓冲的反而更慢一些，可能是在资源调度上面浪费了一些时间。<h3 id=无缓冲>无缓冲</h3><pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    ch := make(chan int)
+    go read(ch)
+    go write(ch)
+    time.Sleep(3 * 1e9)
+}
+
+func read(ch chan int) {
+    for {
+        fmt.Println(&lt;-ch)
+    }
+}
+
+func write(ch chan int) {
+    for i := 0; ; i++ {
+        ch &lt;- i
+    }
+}
+
+// ....
+// 330374
+// 330375
+// 330376
+</code></pre><h3 id=带缓冲>带缓冲</h3><pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    ch := make(chan int, 1000000)
+    go read(ch)
+    go write(ch)
+    time.Sleep(1e9)
+}
+
+func read(ch chan int) {
+    for {
+        fmt.Println(&lt;-ch)
+    }
+}
+
+func write(ch chan int) {
+    for i := 0; ; i++ {
+        ch &lt;- i
+    }
+}
+
+// ....
+// 434095
+// 434096
+// 434097
+</code></pre><h2 id=05-同步实现>05. 同步实现</h2><pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+
+    ch := make(chan bool)
+
+    go func() {
+        time.Sleep(2 * 1e9)
+        ch &lt;- true
+    }()
+
+    fmt.Println(&quot;2 秒后程序结束&quot;)
+    &lt;-ch
+
+}
+</code></pre><p>或者也可以这样：<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    ch := make(chan bool)
+
+    go func() {
+        time.Sleep(1e9)
+        ch &lt;- true
+    }()
+    go func() {
+        time.Sleep(1e9)
+        ch &lt;- true
+    }()
+
+    fmt.Println(&quot;2 秒后程序结束&quot;)
+    &lt;-ch
+    &lt;-ch
+}
+</code></pre><h2 id=06-迭代器实现>06. 迭代器实现</h2><pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    for x := range xrange(10) {
+        fmt.Println(x)
+    }
+
+    time.Sleep(1e9)
+}
+
+func xrange(len int) &lt;-chan int {
+    ch := make(chan int)
+    go func() {
+        for i := 0; i &lt; len; i++ {
+            ch &lt;- i
+        }
+        close(ch)
+    }()
+    return ch
+}
+</code></pre><h2 id=07-迭代器死锁实验>07. 迭代器死锁实验</h2><pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    for x := range xrange(10) {
+        fmt.Println(x)
+    }
+
+    time.Sleep(1e9)
+}
+
+func xrange(len int) &lt;-chan int {
+    ch := make(chan int)
+    go func() {
+        for i := 0; i &lt; len; i++ {
+            ch &lt;- i
+        }
+    }()
+    return ch
+}
+</code></pre><p>上面的代码最后会出现一个 deadlock panic，下面将试着分析一下出现这个问题的原因。<p>我认为，出现这个 panic 的原因是因为没有 close ，for range 循环没有收到 close 通知，认为后面应该还有其他元素。 于是进行了下一轮的迭代。(而这时已经没有其他元素了) 所以就发生了 panic。<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    x := xrange(5)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+
+    // Result:
+    // 0
+    // 1
+    // 2
+    // 3
+    // 4
+
+    time.Sleep(1e9)
+}
+
+func xrange(len int) &lt;-chan int {
+    ch := make(chan int)
+    go func() {
+        for i := 0; i &lt; len; i++ {
+            ch &lt;- i
+        }
+    }()
+    return ch
+}
+</code></pre><p>上面的代码模拟了只取出 5 次的情况，发现并没有发生 panic。而再多取出一个时则发生了 panic：<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    x := xrange(5)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x)
+    fmt.Println(&lt;-x) // 多取出了 1 个
+
+    // Result:
+    // 0
+    // 1
+    // 2
+    // 3
+    // 4
+    // fatal error: all goroutines are asleep - deadlock!
+
+    time.Sleep(1e9)
+}
+
+func xrange(len int) &lt;-chan int {
+    ch := make(chan int)
+    go func() {
+        for i := 0; i &lt; len; i++ {
+            ch &lt;- i
+        }
+    }()
+    return ch
+}
+</code></pre><p>之后我又试着把取出的代码放到 goroutine 中，发现并没有出现 panic：<pre><code class=language-go>package main
+
+import (
+    &quot;fmt&quot;
+    &quot;time&quot;
+)
+
+func main() {
+    go func() {
+        x := xrange(5)
+        fmt.Println(&lt;-x)
+        fmt.Println(&lt;-x)
+        fmt.Println(&lt;-x)
+        fmt.Println(&lt;-x)
+        fmt.Println(&lt;-x)
+        fmt.Println(&lt;-x) // 多取出了 1 个
+    }()
+
+    // Result:
+    // 0
+    // 1
+    // 2
+    // 3
+    // 4
+
+    time.Sleep(1e9)
+}
+
+func xrange(len int) &lt;-chan int {
+    ch := make(chan int)
+    go func() {
+        for i := 0; i &lt; len; i++ {
+            ch &lt;- i
+        }
+    }()
+    return ch
+}
+</code></pre><p>此时我认为，是因为 goroutine 的存在(这时 xrange 函数的 goroutine 已经处于休眠状态了)，使得最后一个 <code>&lt;-x</code> 在一直等待新元素加入。<p>针对以上总结：<ol><li>当不再 send 时，记得 close channel；<li>channel 如果在 goroutine 里用，即使代码逻辑有问题，发生 panic 的几率也小一些；<li>channel 就是给不同 goroutine 做消息共享使用的，所以还是尽量在 goroutine 里用吧。</ol></div><ul><li><a href=/tags/golang>Golang</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

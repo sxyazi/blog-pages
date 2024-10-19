@@ -1,0 +1,498 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="Flex 是一种布局方案。相对于传统的布局方式（浮动 + 定位），Flex 布局具有了「弹性」。这也使得在布局时更加的灵活方便了。 01. 使用 Flex 给一个元素加上 display: flex 即可指定使用 flex 布局。 div { display: flex; } span { /* 内联元素使用 inline-flex */ display: inline-flex; }"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="Flex 弹性盒模型"><meta property="og:description" content="Flex 是一种布局方案。相对于传统的布局方式（浮动 + 定位），Flex 布局具有了「弹性」。这也使得在布局时更加的灵活方便了。 01. 使用 Flex 给一个元素加上 display: flex 即可指定使用 flex 布局。 div { display: flex; } span { /* 内联元素使用 inline-flex */ display: inline-flex; }"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/flex/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-04-30T02:11:12+08:00"><meta property="article:modified_time" content="2017-04-30T02:11:12+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="Flex 弹性盒模型"><meta name=twitter:description content="Flex 是一种布局方案。相对于传统的布局方式（浮动 + 定位），Flex 布局具有了「弹性」。这也使得在布局时更加的灵活方便了。 01. 使用 Flex 给一个元素加上 display: flex 即可指定使用 flex 布局。 div { display: flex; } span { /* 内联元素使用 inline-flex */ display: inline-flex; }"><title data-site="Sxyazi’s blog">Flex 弹性盒模型 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>Flex 弹性盒模型</h1><time datetime=2017-04-30T02:11:12+0800>04-30</time>
+<span>flex</span><div><p>Flex 是一种布局方案。相对于传统的布局方式（浮动 + 定位），Flex 布局具有了「弹性」。这也使得在布局时更加的灵活方便了。<h2 id=01-使用-flex>01. 使用 Flex</h2><p>给一个元素加上 <code>display: flex</code> 即可指定使用 flex 布局。<pre><code class=language-css>div {
+	display: flex;
+}
+
+span {
+	/* 内联元素使用 inline-flex */
+	display: inline-flex;
+}
+</code></pre><h2 id=02-一些概念>02. 一些概念</h2><p><strong>容器</strong>：被加上 <code>display: flex</code> 的元素叫做容器。<p><strong>项目</strong>：在 容器 中的元素叫做项目。<p><strong>主轴(main axis)</strong>：默认是水平的，从左到右的。见下图 <code>main start</code> 到 <code>main end</code> 。<p><strong>交叉轴(cross axis)</strong>：默认是垂直的，从上到下的。见下图 <code>cross start</code> 到 <code>cross end</code> 。<p><img src=/images/flex/overview.jpg alt><h2 id=03-容器选项>03. 容器选项</h2><h3 id=flex-direction-设置主轴的方向>flex-direction: 设置主轴的方向</h3><ul><li><strong>row</strong>：(默认) 从左到右<li><strong>row-reverse</strong>：从右到左<li><strong>column</strong>：从上往下<li><strong>column-reverse</strong>：从下往上</ul><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;utf-8&quot; /&gt;
+		&lt;style&gt;
+			ul {
+				display: flex;
+				padding: 10px;
+				list-style: none;
+				background: #e0efff;
+			}
+			li {
+				width: 50px;
+				height: 50px;
+				font-size: 25px;
+				line-height: 50px;
+				text-align: center;
+				margin-right: 4px;
+				margin-bottom: 4px;
+				border: 1px solid gray;
+			}
+
+			ul:nth-of-type(1) {
+				flex-direction: row;
+			}
+			ul:nth-of-type(2) {
+				flex-direction: row-reverse;
+			}
+			ul:nth-of-type(3) {
+				height: 200px;
+				flex-direction: column;
+			}
+			ul:nth-of-type(4) {
+				height: 200px;
+				flex-direction: column-reverse;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+
+	&lt;body&gt;
+		&lt;h3&gt;flex-direction: row&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;flex-direction: row-reverse&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;flex-direction: column&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;flex-direction: column-reverse&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/flex-direction.png alt><h3 id=flex-wrap-设置换行方式>flex-wrap: 设置换行方式</h3><ul><li><strong>nowrap</strong>：(默认) 不换行<li><strong>wrap</strong>：换行<li><strong>wrap-reverse</strong>：换行反向</ul><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;utf-8&quot; /&gt;
+		&lt;style&gt;
+			ul {
+				width: 300px;
+				display: flex;
+				padding: 10px;
+				list-style: none;
+				background: #e0efff;
+			}
+			li {
+				width: 80px;
+				height: 80px;
+				font-size: 25px;
+				line-height: 80px;
+				text-align: center;
+				margin-right: 4px;
+				margin-bottom: 4px;
+				border: 1px solid gray;
+			}
+
+			ul:nth-of-type(1) {
+				flex-wrap: nowrap;
+			}
+			ul:nth-of-type(2) {
+				flex-wrap: wrap;
+			}
+			ul:nth-of-type(3) {
+				flex-wrap: wrap-reverse;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+
+	&lt;body&gt;
+		&lt;h3&gt;flex-wrap: nowrap&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+			&lt;li&gt;e&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;flex-wrap: wrap&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+			&lt;li&gt;e&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;flex-wrap: wrap-reverse&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+			&lt;li&gt;e&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/flex-wrap.png alt><h3 id=flex-flow-同时设置-flex-direction-与-flex-wrap>flex-flow: 同时设置 <code>flex-direction</code> 与 <code>flex-wrap</code></h3><ul><li>可被设置的值具体参考 <code>flex-direction</code> 与 <code>flex-wrap</code></ul><pre><code class=language-css>div {
+	flex-flow: &lt;flex-direction&gt; &lt;flex-wrap&gt;;
+}
+</code></pre><h3 id=justify-content-设置项目在主轴上的对齐方式>justify-content: 设置项目在主轴上的对齐方式</h3><ul><li><strong>flex-start</strong>：(默认) 左对齐<li><strong>flex-end</strong>：右对齐<li><strong>center</strong>：居中对齐<li><strong>space-between</strong>：两端对齐<li><strong>space-around</strong>：每个项目间的间距一致</ul><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;utf-8&quot; /&gt;
+		&lt;style&gt;
+			ul {
+				width: 600px;
+				display: flex;
+				padding: 10px;
+				list-style: none;
+				background: #e0efff;
+			}
+			li {
+				font-size: 25px;
+				text-align: center;
+				margin-right: 4px;
+				margin-bottom: 4px;
+				border: 1px solid gray;
+			}
+
+			ul:nth-of-type(1) {
+				justify-content: flex-start;
+			}
+			ul:nth-of-type(2) {
+				justify-content: flex-end;
+			}
+			ul:nth-of-type(3) {
+				justify-content: center;
+			}
+			ul:nth-of-type(4) {
+				justify-content: space-between;
+			}
+			ul:nth-of-type(5) {
+				justify-content: space-around;
+			}
+
+			li:nth-child(1) {
+				width: 40px;
+				height: 40px;
+				line-height: 40px;
+			}
+			li:nth-child(2) {
+				width: 80px;
+				height: 80px;
+				line-height: 80px;
+			}
+			li:nth-child(3) {
+				width: 50px;
+				height: 50px;
+				line-height: 50px;
+			}
+			li:nth-child(4) {
+				width: 100px;
+				height: 100px;
+				line-height: 100px;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+
+	&lt;body&gt;
+		&lt;h3&gt;justify-content: flex-start&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;justify-content: flex-end&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;justify-content: center&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;justify-content: space-between&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h3&gt;justify-content: space-around&lt;/h3&gt;
+		&lt;ul&gt;
+			&lt;li&gt;a&lt;/li&gt;
+			&lt;li&gt;b&lt;/li&gt;
+			&lt;li&gt;c&lt;/li&gt;
+			&lt;li&gt;d&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/justify-content.png alt><h3 id=align-items-设置项目在交叉轴上的对齐方式>align-items: 设置项目在交叉轴上的对齐方式</h3><ul><li><strong>flex-start</strong>：沿交叉轴起点对齐<li><strong>flex-end</strong>：沿交叉轴终点对齐<li><strong>center</strong>：沿交叉轴中点对齐<li><strong>baseline</strong>：与项目第一行文字的基线对齐<li><strong>stretch</strong>：(默认) 未设置高度的项目会沾满整个容器</ul><p><img src=/images/flex/align-items.jpg alt><h3 id=align-content-设置多行项目时的对齐方式>align-content: 设置多行项目时的对齐方式</h3><ul><li><strong>flex-start</strong>：沿交叉轴起点对齐<li><strong>flex-end</strong>：沿交叉轴终点对齐<li><strong>center</strong>：沿交叉轴中点对齐<li><strong>space-between</strong>：两端对齐<li><strong>space-around</strong>：平均分配空间<li><strong>stretch</strong>：(默认) 占满整个交叉轴</ul><p><img src=/images/flex/align-content.jpg alt><h2 id=04-项目选项>04. 项目选项</h2><h3 id=order-设置项目排列顺序从小到大默认为-0>order: 设置项目排列顺序，从小到大，默认为 0</h3><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;UTF-8&quot; /&gt;
+		&lt;style&gt;
+			body &gt; div {
+				width: 300px;
+				display: flex;
+				border: 1px solid #bbb;
+			}
+			div &gt; div {
+				color: white;
+				margin: 5px;
+				width: 60px;
+				height: 60px;
+				font-size: 25px;
+				line-height: 60px;
+				text-align: center;
+				background: #00bcd4;
+			}
+			div &gt; div:nth-child(1) {
+				order: 1;
+			}
+			div &gt; div:nth-child(3) {
+				order: 9;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+	&lt;body&gt;
+		&lt;div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+			&lt;div&gt;9&lt;/div&gt;
+		&lt;/div&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/order.jpg alt><h3 id=flex-grow-设置项目放大比例>flex-grow: 设置项目放大比例</h3><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;UTF-8&quot; /&gt;
+		&lt;style&gt;
+			body &gt; div {
+				width: 500px;
+				display: flex;
+				border: 1px solid #bbb;
+			}
+			div &gt; div {
+				color: white;
+				width: 60px;
+				height: 60px;
+				font-size: 25px;
+				line-height: 60px;
+				text-align: center;
+				background: #00bcd4;
+				outline: 1px solid gray;
+			}
+
+			#avg &gt; div:nth-child(1) {
+				flex-grow: 1;
+			}
+			#avg &gt; div:nth-child(2) {
+				flex-grow: 1;
+			}
+			#avg &gt; div:nth-child(3) {
+				flex-grow: 1;
+			}
+
+			#diff &gt; div:nth-child(1) {
+				flex-grow: 1;
+			}
+			#diff &gt; div:nth-child(2) {
+				flex-grow: 3;
+			}
+			#diff &gt; div:nth-child(3) {
+				flex-grow: 5;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+	&lt;body&gt;
+		&lt;h2&gt;默认值0&lt;/h2&gt;
+		&lt;div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;h2&gt;设置为1，均分&lt;/h2&gt;
+		&lt;div id=&quot;avg&quot;&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;h2&gt;设置不同的值&lt;/h2&gt;
+		&lt;div id=&quot;diff&quot;&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;3&lt;/div&gt;
+			&lt;div&gt;5&lt;/div&gt;
+		&lt;/div&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/flex-grow.jpg alt><h3 id=flex-shrink-设置项目缩小比例>flex-shrink: 设置项目缩小比例</h3><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;UTF-8&quot; /&gt;
+		&lt;style&gt;
+			body &gt; div {
+				width: 250px;
+				display: flex;
+				border: 1px solid #bbb;
+			}
+			div &gt; div {
+				color: white;
+				width: 100px;
+				height: 100px;
+				font-size: 25px;
+				line-height: 100px;
+				text-align: center;
+				background: #00bcd4;
+				outline: 1px solid gray;
+			}
+
+			#zero &gt; div:nth-child(1),
+			#zero &gt; div:nth-child(2),
+			#zero &gt; div:nth-child(3) {
+				flex-shrink: 0;
+			}
+
+			#zoom &gt; div:nth-child(1) {
+				flex-shrink: 0;
+			}
+			#zoom &gt; div:nth-child(3) {
+				flex-shrink: 0;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+	&lt;body&gt;
+		&lt;h2&gt;默认值1，全缩放&lt;/h2&gt;
+		&lt;div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;h2&gt;设置为0，全不缩放&lt;/h2&gt;
+		&lt;div id=&quot;zero&quot;&gt;
+			&lt;div&gt;0&lt;/div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;h2&gt;只缩放某元素&lt;/h2&gt;
+		&lt;div id=&quot;zoom&quot;&gt;
+			&lt;div&gt;0&lt;/div&gt;
+			&lt;div&gt;1&lt;/div&gt;
+			&lt;div&gt;0&lt;/div&gt;
+		&lt;/div&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/flex-shrink.jpg alt><h3 id=flex-basis-设置项目基准值>flex-basis: 设置项目基准值</h3><ul><li><strong>auto</strong>：(默认) 项目大小</ul><p>浏览器会根据 <code>flex-basis</code> 计算伸缩比例。若设置为 <code>auto</code> 且未设置 <code>width</code> ，则是项目内内容所占据的宽度。<pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;UTF-8&quot; /&gt;
+		&lt;style&gt;
+			body &gt; div {
+				width: 250px;
+				display: flex;
+				border: 1px solid #bbb;
+			}
+			div &gt; div {
+				color: white;
+				width: 100px;
+				height: 100px;
+				font-size: 25px;
+				line-height: 100px;
+				text-align: center;
+				background: #00bcd4;
+				outline: 1px solid gray;
+			}
+
+			div &gt; div:nth-child(2) {
+				flex-basis: 500px;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+	&lt;body&gt;
+		&lt;div&gt;
+			&lt;div&gt;a&lt;/div&gt;
+			&lt;div&gt;b&lt;/div&gt;
+			&lt;div&gt;c&lt;/div&gt;
+		&lt;/div&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><h3 id=align-self-为某个项目单独设置-align-items>align-self: 为某个项目单独设置 <code>align-items</code></h3><ul><li><strong>auto</strong>：(默认) 继承父元素的 <code>align-items</code> 属性</ul><pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+	&lt;head&gt;
+		&lt;meta charset=&quot;UTF-8&quot; /&gt;
+		&lt;style&gt;
+			body &gt; div {
+				width: 400px;
+				height: 100px;
+				display: flex;
+				align-items: center;
+				border: 1px solid #bbb;
+			}
+			div &gt; div {
+				color: white;
+				margin: 5px;
+				width: 60px;
+				font-size: 25px;
+				text-align: center;
+				background: #00bcd4;
+			}
+			div &gt; div:nth-child(1) {
+				height: 40px;
+				line-height: 40px;
+			}
+			div &gt; div:nth-child(2) {
+				height: 60px;
+				line-height: 60px;
+			}
+			div &gt; div:nth-child(3) {
+				height: 80px;
+				line-height: 80px;
+			}
+
+			#self {
+				margin-top: 10px;
+			}
+			#self div:nth-child(1) {
+				align-self: flex-start;
+				background: #ff4500;
+			}
+		&lt;/style&gt;
+	&lt;/head&gt;
+	&lt;body&gt;
+		&lt;div&gt;
+			&lt;div&gt;a&lt;/div&gt;
+			&lt;div&gt;b&lt;/div&gt;
+			&lt;div&gt;c&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;div id=&quot;self&quot;&gt;
+			&lt;div&gt;a&lt;/div&gt;
+			&lt;div&gt;b&lt;/div&gt;
+			&lt;div&gt;c&lt;/div&gt;
+		&lt;/div&gt;
+	&lt;/body&gt;
+&lt;/html&gt;
+</code></pre><p><img src=/images/flex/align-self.jpg alt></div><ul><li><a href=/tags/css>CSS</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

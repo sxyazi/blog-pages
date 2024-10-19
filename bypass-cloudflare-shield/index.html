@@ -1,0 +1,186 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="最近才知道，除了 TLS 指纹，竟然还有 HTTP/2 指纹，这两种 Cloudflare 都有采用，这篇博客介绍如何绕过它们。 起因 最近发现之前写的搜图 Bot 坏掉了，这个 Bot 接入了 3 个搜索后端，出问题的是 ascii2d.net。由于它最近套上了 Clo"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="绕过 Cloudflare 指纹护盾"><meta property="og:description" content="最近才知道，除了 TLS 指纹，竟然还有 HTTP/2 指纹，这两种 Cloudflare 都有采用，这篇博客介绍如何绕过它们。 起因 最近发现之前写的搜图 Bot 坏掉了，这个 Bot 接入了 3 个搜索后端，出问题的是 ascii2d.net。由于它最近套上了 Clo"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/bypass-cloudflare-shield/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2023-04-22T21:54:44+08:00"><meta property="article:modified_time" content="2023-04-22T21:54:44+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="绕过 Cloudflare 指纹护盾"><meta name=twitter:description content="最近才知道，除了 TLS 指纹，竟然还有 HTTP/2 指纹，这两种 Cloudflare 都有采用，这篇博客介绍如何绕过它们。 起因 最近发现之前写的搜图 Bot 坏掉了，这个 Bot 接入了 3 个搜索后端，出问题的是 ascii2d.net。由于它最近套上了 Clo"><title data-site="Sxyazi’s blog">绕过 Cloudflare 指纹护盾 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>绕过 Cloudflare 指纹护盾</h1><time datetime=2023-04-22T21:54:44+0800>04-22</time>
+<span>bypass-cloudflare-shield</span><div><p>最近才知道，除了 TLS 指纹，竟然还有 HTTP/2 指纹，这两种 Cloudflare 都有采用，这篇博客介绍如何绕过它们。<h2 id=起因>起因</h2><p>最近发现之前写的搜图 Bot 坏掉了，这个 Bot 接入了 3 个搜索后端，出问题的是 <a href=https://ascii2d.net>ascii2d.net</a>。由于它最近套上了 Cloudflare，所有请求都要经过护盾验证。<pre><code class=language-go>func TestCF(t *testing.T) {
+	req, _ := http.NewRequest(&quot;GET&quot;, &quot;https://ascii2d.net&quot;, nil)
+	resp, _ := http.DefaultClient.Do(req)
+
+	body, _ := io.ReadAll(resp.Body)
+	log.Println(string(body))
+}
+</code></pre><p>为了方便叙述，这里使用 Go 内置的 <code>http</code>，常规项目可以使用 <a href=https://github.com/go-resty/resty>resty</a> 这种进一步封装的 HTTP Client。<p>以上代码发出一个 <code>GET</code> 请求，并得到如下响应：<pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en-US&quot;&gt;
+  &lt;head&gt;
+    &lt;title&gt;Just a moment...&lt;/title&gt;
+    &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;
+  &lt;/head&gt;
+&lt;/html&gt;
+</code></pre><p>这里只截取了部分响应，当出现 <code>Just a moment...</code> 就说明已经被 Cloudflare 拦住了。<h2 id=调查>调查</h2><p>被拦截时，按照一个攻城狮的思维惯性，就是要想办法破掉它。正当我准备实施，打开浏览器一探究竟时，出现了诡异的一幕：浏览器没有盾！<p>我立刻意识到这可能和 HTTP Client 的 fingerprint 有关。于是我决定先从简单的 request headers 入手：<pre><code class=language-go{3-6}>func TestCF(t *testing.T) {
+	req, _ := http.NewRequest(&quot;GET&quot;, &quot;https://ascii2d.net&quot;, nil)
+	req.Header.Set(&quot;accept&quot;, &quot;text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7&quot;)
+	req.Header.Set(&quot;accept-language&quot;, &quot;en,zh-CN;q=0.9,zh;q=0.8&quot;)
+	req.Header.Set(&quot;user-agent&quot;, &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36&quot;)
+	// ...
+
+	resp, _ := http.DefaultClient.Do(req)
+	body, _ := io.ReadAll(resp.Body)
+	log.Println(string(body))
+}
+</code></pre><p>没错，就是让这些 headers 尽量接近于真实浏览器。但最终发现这并没有起效，那么可以合理推测并不是 application layer 的问题，那就只剩 session layer 了，也就是 TLS。<h2 id=分析>分析</h2><p>接下来，通过 Wireshark 分别抓包 Go 程序和浏览器各自的 TLS Client Hello，并比对其差异。这里由于只需要查看 Client Hello 握手时的信息，无须进一步解密其更上层 HTTP 协议栈的数据，因此抓起来很容易：<ul><li>Wireshark 选定适当的网卡，并应用 <code>tls.handshake.extensions_server_name contains "ascii2d.net"</code> 过滤器<li>运行 Go 测试，发出请求<li>启动浏览器，导航到 <a href=https://ascii2d.net>ascii2d.net</a><li>分析两个包的区别</ul><p>经过反复比对、测试，发现与 Cipher Suites 有关 —— Cloudflare 通过包含的密码套件及其顺序识别 HTTP Client 的类型：<p><img src=/images/bypass-cloudflare/go-cipher-suites.png alt><p><img src=/images/bypass-cloudflare/chrome-cipher-suites.png alt><p>于是解决问题的办法就显而易见了：将 Go HTTP Client 的 Cipher Suites 伪造成浏览器。<p>但坑的是，Go 官方为了所谓的“安全性”，是<a href=https://github.com/golang/go/issues/29349>不允许用户修改密码套件</a>的。他们的理由是，如果你不是密码专家，可能会选择已不安全的密码套件，或是对其错误地配置。<p>因此 Go 为开发者选择当下最佳的密码套件组合，并强迫开发者为此买单。不过，可能也正因如此，出现了像 <a href=https://github.com/refraction-networking/utls>uTLS</a> 这样优秀的库，它提供最大的可配置性，并将 Go 的 TLS 完全替换，以帮助人们对抗流量审查，这在其它语言社区是很少见的。<h2 id=utls>uTLS</h2><p>这里就使用 uTLS 伪造浏览器指纹。安装它：<pre><code class=language-bash>go get -u github.com/refraction-networking/utls
+</code></pre><p>再而需要修改一下前面的测试文件：<pre><code class=language-go{3}>func TestCF(t *testing.T) {
+	req, _ := http.NewRequest(&quot;GET&quot;, &quot;https://ascii2d.net&quot;, nil)
+	resp, _ := newClient().Do(req)
+
+	body, _ := io.ReadAll(resp.Body)
+	log.Println(string(body))
+}
+</code></pre><p>这里使用 <code>newClient()</code> 创建一个新的 HTTP Client，而不再使用 Go 的默认 Client：<pre><code class=language-go>func newClient(t http.RoundTripper) *http.Client {
+	return &amp;http.Client{
+		Transport: &amp;uTransport{
+			tr1: &amp;http.Transport{},
+			tr2: &amp;http2.Transport{},
+		},
+		// ...
+	}
+}
+</code></pre><p>最后使用我们稍后实现的 <code>uTransport</code> 完全替换掉 HTTP Client 的默认 <code>Transport</code>。<p>其实，除手动实现 <code>Transport</code> 外，也可以使用 <a href=https://github.com/CUCyber/ja3transport>ja3transport</a>，它的主要工作是将 JA3 配置字符转换为 uTLS 的配置结构。<p>JA3 字符则可以在 Wireshark 的 Client Hello 包中复制得到，类似于下面这样：<pre><code>771,4865-4866-4867-49196-49195-49188-49187-49162-49161-52393-49200-49199-49192-49191-49172-49171-52392-157-156-61-60-53-47-49160-49170-10,65281-0-23-13-5-18-16-11-51-45-43-10-21,29-23-24-25,0
+</code></pre><p>其中包含 Client Hello 握手时所携带的全部信息。但这里不使用 ja3transport，因为它已经很久没维护了，部分新的 uTLS 扩展字段它并不支持。因此下面我们手动实现基于 uTLS 的 Transport。<h2 id=伪造-tls-指纹>伪造 TLS 指纹</h2><p>先定义 <code>uTransport</code> 结构，<code>http.Client.Transport</code> 需要满足 <code>http.RoundTripper</code> 接口，即必须实现其唯一的方法 <code>RoundTrip</code>，签名为 <code>RoundTrip(*Request) (*Response, error)</code>：<pre><code class=language-go>import tls &quot;github.com/refraction-networking/utls&quot;
+
+type uTransport struct {
+	tr1 *http.Transport
+	tr2 *http2.Transport
+}
+
+func (u *uTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Scheme == &quot;http&quot; {
+		return u.tr1.RoundTrip(req)
+	} else if req.URL.Scheme != &quot;https&quot; {
+		return nil, fmt.Errorf(&quot;unsupported scheme: %s&quot;, req.URL.Scheme)
+	}
+
+	port := req.URL.Port()
+	if port == &quot;&quot; {
+		port = &quot;443&quot;
+	}
+
+	// TCP connection
+	conn, err := net.DialTimeout(&quot;tcp&quot;, fmt.Sprintf(&quot;%s:%s&quot;, req.URL.Hostname(), port), 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf(&quot;net.DialTimeout error: %+v&quot;, err)
+	}
+
+	// TLS connection
+	uConn := tls.UClient(conn, &amp;tls.Config{ServerName: req.URL.Hostname()}, tls.HelloCustom)
+	if err = uConn.ApplyPreset(u.newSpec()); err != nil {
+		return nil, fmt.Errorf(&quot;uConn.ApplyPreset() error: %+v&quot;, err)
+	}
+	if err = uConn.Handshake(); err != nil {
+		return nil, fmt.Errorf(&quot;uConn.Handshake() error: %+v&quot;, err)
+	}
+
+	alpn := uConn.ConnectionState().NegotiatedProtocol
+	switch alpn {
+	case &quot;h2&quot;:
+		req.Proto = &quot;HTTP/2.0&quot;
+		req.ProtoMajor = 2
+		req.ProtoMinor = 0
+
+		if c, err := u.tr2.NewClientConn(uConn); err == nil {
+			return c.RoundTrip(req)
+		} else {
+			return nil, fmt.Errorf(&quot;http2.Transport.NewClientConn() error: %+v&quot;, err)
+		}
+
+	case &quot;http/1.1&quot;, &quot;&quot;:
+		req.Proto = &quot;HTTP/1.1&quot;
+		req.ProtoMajor = 1
+		req.ProtoMinor = 1
+
+		if err := req.Write(uConn); err == nil {
+			return http.ReadResponse(bufio.NewReader(uConn), req)
+		} else {
+			return nil, fmt.Errorf(&quot;http.Request.Write() error: %+v&quot;, err)
+		}
+
+	default:
+		return nil, fmt.Errorf(&quot;unsupported ALPN: %v&quot;, alpn)
+	}
+}
+</code></pre><p>其中 <code>RoundTrip</code> 做了如下工作：<ul><li>如果是 HTTP，则直接 fallback 到 http.Transport 的<code>RoundTrip</code>，因为它与 TLS 不相干<li>如果是 HTTPS，则建立一个新的 TCP 连接，并基于此创建一个新的 TLS 会话，最后按照 ALPN 协商结果，处理不同的 HTTP 版本</ul><p>最后，实现 <code>newSpec()</code> 方法，它创建一个新的 <code>ClientHelloSpec</code> uTLS 配置对象：<pre><code class=language-go>func (*uTransport) newSpec() *tls.ClientHelloSpec {
+	return &amp;tls.ClientHelloSpec{
+		TLSVersMax:         tls.VersionTLS13,
+		TLSVersMin:         tls.VersionTLS12,
+		CipherSuites:       []uint16{tls.GREASE_PLACEHOLDER, 0x1301, 0x1302, 0x1303, 0xc02b, 0xc02f, 0xc02c, 0xc030, 0xcca9, 0xcca8, 0xc013, 0xc014, 0x009c, 0x009d, 0x002f, 0x0035},
+		CompressionMethods: []uint8{0x0}, // no compression
+		Extensions: []tls.TLSExtension{
+			&amp;tls.UtlsGREASEExtension{},
+			&amp;tls.SNIExtension{},
+			&amp;tls.UtlsExtendedMasterSecretExtension{},
+			&amp;tls.RenegotiationInfoExtension{},
+			&amp;tls.SupportedCurvesExtension{Curves: []tls.CurveID{tls.GREASE_PLACEHOLDER, tls.X25519, tls.CurveP256, tls.CurveP384}},
+			&amp;tls.SupportedPointsExtension{SupportedPoints: []byte{0x0}}, // uncompressed
+			&amp;tls.SessionTicketExtension{},
+			&amp;tls.ALPNExtension{AlpnProtocols: []string{&quot;http/1.1&quot;}},
+			&amp;tls.StatusRequestExtension{},
+			&amp;tls.SignatureAlgorithmsExtension{SupportedSignatureAlgorithms: []tls.SignatureScheme{0x0403, 0x0804, 0x0401, 0x0503, 0x0805, 0x0501, 0x0806, 0x0601}},
+			&amp;tls.SCTExtension{},
+			&amp;tls.KeyShareExtension{KeyShares: []tls.KeyShare{
+				{Group: tls.CurveID(tls.GREASE_PLACEHOLDER), Data: []byte{0}},
+				{Group: tls.X25519},
+			}},
+			&amp;tls.PSKKeyExchangeModesExtension{Modes: []uint8{tls.PskModeDHE}}, // pskModeDHE
+			&amp;tls.SupportedVersionsExtension{Versions: []uint16{tls.GREASE_PLACEHOLDER, tls.VersionTLS13, tls.VersionTLS12}},
+			&amp;tls.UtlsCompressCertExtension{Algorithms: []tls.CertCompressionAlgo{tls.CertCompressionBrotli}},
+			&amp;tls.ApplicationSettingsExtension{SupportedProtocols: []string{&quot;h2&quot;}},
+			&amp;tls.UtlsGREASEExtension{},
+			&amp;tls.UtlsPaddingExtension{GetPaddingLen: tls.BoringPaddingStyle},
+		},
+		GetSessionID: nil,
+	}
+}
+</code></pre><p>这堆配置照着 Wireshark 抓到的 Client Hello 配就好了，这里是 Google Chrome 112.0.5615.137。另外需要注意，每个 <code>ClientHelloSpec</code> 只能被使用一次，因此需要每次方法调用时创建一个新的。<p>现在运行 <code>TestCF</code> 测试，发现一切都正常了：<pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;ja&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;meta
+      content=&quot;width=device-width,initial-scale=1.0,minimum-scale=1.0&quot;
+      name=&quot;viewport&quot;
+    /&gt;
+    &lt;title&gt;二次元画像詳細検索&lt;/title&gt;
+  &lt;/head&gt;
+&lt;/html&gt;
+</code></pre><h2 id=akamai-fingerprint>Akamai fingerprint</h2><p>你可能会发现，<code>AlpnProtocols</code> 怎么只配置了 <code>[]string{"http/1.1"}</code>，试着将其补全：<pre><code class=language-go>&amp;tls.ALPNExtension{AlpnProtocols: []string{&quot;h2&quot;, &quot;http/1.1&quot;}},
+</code></pre><p>然后再次运行测试，你会发现，我们再次回到了原点：<pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en-US&quot;&gt;
+  &lt;head&gt;
+    &lt;title&gt;Just a moment...&lt;/title&gt;
+    &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;
+  &lt;/head&gt;
+&lt;/html&gt;
+</code></pre><p>这意味着不支持 HTTP/2？事实是，前面我们仅仅伪造了 TLS 指纹，但当使用 HTTP/2 over TLS 时，Cloudflare 还会再多检查一个 HTTP/2 的指纹 —— 通常被称为 akamai fingerprint，它长得像这样：<pre><code>// go 1.20.3
+fingerprint: 2:0,4:4194304,6:10485760|1073741824|0|a,m,p,s
+hash (MD5): 55541b174e8a8adc32544ca36c6fd053
+</code></pre><p>你可以在 <a href=https://tls.peet.ws/api/all>https://tls.peet.ws/api/all</a> 查看你的浏览器 HTTP/2 指纹。这里简单解释一下它的生成方式：<ul><li><p>对 HTTP/2 中的 4 种 frame 采样，分别是：SETTINGS、WINDOW_UPDATE、PRIORITY、HEADERS，它们间使用“|”隔开，即：<pre><code>SETTINGS|WINDOW_UPDATE|PRIORITY|HEADERS
+</code></pre><li><p>SETTINGS 部分：对发送的 settings 编码，格式 <code>KEY:VALUE</code>，多个逗号隔开。其中 <code>HEADER_TABLE_SIZE</code> 的 <code>KEY=1</code>、<code>ENABLE_PUSH</code> 的 <code>KEY=2</code>、<code>MAX_CONCURRENT_STREAMS</code>、<code>INITIAL_WINDOW_SIZE</code>、<code>MAX_FRAME_SIZE</code>、<code>MAX_HEADER_LIST_SIZE</code> 以此类推。<p>如同时发送 <code>ENABLE_PUSH=0</code>、<code>INITIAL_WINDOW_SIZE=4194304</code>，则编码为 <code>2:0,4:4194304</code><li><p>WINDOW_UPDATE 部分：若存在该 frame，则编码为 <code>increment</code> 值，否则 <code>00</code><li><p>PRIORITY 部分：若存在该 frame，则编码为 <code>stream:exclusive:dependsOn:weight</code>，否则 <code>0</code><li><p>HEADERS 部分：以 <code>:</code> 开头的 header 的第一个字符参与编码，多个逗号隔开。如 <code>:method</code>、<code>:scheme</code> 编码为 <code>m,s</code></ul><p>更多细节可参见 <a href=https://www.blackhat.com/docs/eu-17/materials/eu-17-Shuster-Passive-Fingerprinting-Of-HTTP2-Clients-wp.pdf>Passive Fingerprinting of HTTP/2 Clients</a>。<h2 id=伪造-http2-指纹>伪造 HTTP/2 指纹</h2><p>上面介绍了 HTTP/2 指纹的生成方式，于是我们可以发现，伪造其实非常简单，只需要修改其中某个参数，让生成的 Hash 不在 Cloudflare 数据库中即可，如：<pre><code class=language-go{6}>func newClient(t http.RoundTripper) *http.Client {
+	return &amp;http.Client{
+		Transport: &amp;uTransport{
+			tr1: &amp;http.Transport{},
+			tr2: &amp;http2.Transport{
+				MaxDecoderHeaderTableSize: 1 &lt;&lt; 16,  // this line added
+			},
+		},
+		// ...
+	}
+}
+</code></pre><p>当然，为了进一步地浑水摸鱼你可以伪造更多参数，乃至于最终和浏览器拥有相同的 Hash。然后再跑一次测试：<pre><code class=language-html>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;ja&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot; /&gt;
+    &lt;meta
+      content=&quot;width=device-width,initial-scale=1.0,minimum-scale=1.0&quot;
+      name=&quot;viewport&quot;
+    /&gt;
+    &lt;title&gt;二次元画像詳細検索&lt;/title&gt;
+  &lt;/head&gt;
+&lt;/html&gt;
+</code></pre><p>完美！现在成功支持了 HTTP/2。<h2 id=结尾>结尾</h2><p>最后顺带提下，上面的 <code>uTransport</code> 为最简实现，还缺乏许多功能，如连接池管理，若拿来使用需酌情完善。<p>作者由可爱<a href=https://sxzz.moe>智子</a>强力驱动，提供精神鼓励与保障 😸</div><ul><li><a href=/tags/golang>Golang</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>

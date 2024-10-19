@@ -1,0 +1,137 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><meta http-equiv=x-ua-compatible content="IE=edge,chrome=1"><meta name=viewport content="width=device-width,initial-scale=1"><meta name=format-detection content="telephone=no"><meta name=description content="SQL 标准定义了 4 种隔离级别，包括了一些具体规则，用来限定事务内外的哪些改变是可见的，哪些是不可见的。 低级别的隔离级一般支持更高的并发处理，并拥有更低的系统开销。 00. 查看隔离级别 # 全局 select @@global.tx_isolation; # 当前会话 select @@session.tx_isolation; # 设"><meta name=theme-color media="(prefers-color-scheme: light)" content="white"><meta name=theme-color media="(prefers-color-scheme: dark)" content="#0f172a"><meta property="og:title" content="关系型数据库事务隔离级别"><meta property="og:description" content="SQL 标准定义了 4 种隔离级别，包括了一些具体规则，用来限定事务内外的哪些改变是可见的，哪些是不可见的。 低级别的隔离级一般支持更高的并发处理，并拥有更低的系统开销。 00. 查看隔离级别 # 全局 select @@global.tx_isolation; # 当前会话 select @@session.tx_isolation; # 设"><meta property="og:type" content="article"><meta property="og:url" content="https://sxyz.blog/db-transaction-isolation/"><meta property="og:image" content="https://sxyz.blog/images/others/artwork.jpg"><meta property="article:section" content><meta property="article:published_time" content="2017-07-26T22:55:10+08:00"><meta property="article:modified_time" content="2017-07-26T22:55:10+08:00"><meta name=twitter:card content="summary_large_image"><meta name=twitter:image content="https://sxyz.blog/images/others/artwork.jpg"><meta name=twitter:title content="关系型数据库事务隔离级别"><meta name=twitter:description content="SQL 标准定义了 4 种隔离级别，包括了一些具体规则，用来限定事务内外的哪些改变是可见的，哪些是不可见的。 低级别的隔离级一般支持更高的并发处理，并拥有更低的系统开销。 00. 查看隔离级别 # 全局 select @@global.tx_isolation; # 当前会话 select @@session.tx_isolation; # 设"><title data-site="Sxyazi’s blog">关系型数据库事务隔离级别 | Sxyazi’s blog</title><link rel=stylesheet href=/assets/index-fad781fe.css><link rel=apple-touch-icon sizes=180x180 href=/apple-touch-icon.png><link rel=icon type=image/png sizes=32x32 href=/favicon-32x32.png><link rel=icon type=image/png sizes=16x16 href=/favicon-16x16.png><link rel=manifest href=/manifest.json><meta name=theme-color content="#ffffff"></head><body><main><nav id=nav><a href=/>Home</a><a href=/archives/>Archives</a><a href=/tags/>Tags</a><a href=/links/>Links</a><a href=/about/>About</a></nav><section id=post><h1>关系型数据库事务隔离级别</h1><time datetime=2017-07-26T22:55:10+0800>07-26</time>
+<span>db-transaction-isolation</span><div><p>SQL 标准定义了 4 种隔离级别，包括了一些具体规则，用来限定事务内外的哪些改变是可见的，哪些是不可见的。 低级别的隔离级一般支持更高的并发处理，并拥有更低的系统开销。<h2 id=00-查看隔离级别>00. 查看隔离级别</h2><pre><code class=language-mysql># 全局
+select @@global.tx_isolation;
+
+# 当前会话
+select @@session.tx_isolation;
+
+# 设置隔离级别
+set [global|session] transaction isolation level 隔离级别;
+</code></pre><h2 id=01-serializable可串行化>01. SERIALIZABLE（可串行化）</h2><pre><code class=language-mysql># 设置隔离级别
+mysql1&gt; set session transaction isolation level serializable;
+mysql2&gt; set session transaction isolation level serializable;
+
+# 开启事务
+mysql1&gt; start transaction;
+mysql2&gt; start transaction;
+
+# 查询
+mysql1&gt; select * from tb1;
+Empty set (0.00 sec)
+mysql2&gt; select * from tb1;
+Empty set (0.00 sec)
+
+# 不能新增数据
+mysql1&gt; insert into tb1(value) values(&quot;hello&quot;);
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+mysql2&gt; insert into tb1(value) values(&quot;hello&quot;);
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+mysql1&gt; commit;
+mysql1&gt; insert into tb1(value) values(&quot;hello&quot;); # 无法新增数据
+mysql2&gt; commit;
+mysql1&gt; insert into tb1(value) values(&quot;hello&quot;); # 增加成功
+mysql2&gt; insert into tb1(value) values(&quot;world&quot;); # 增加成功
+</code></pre><p><strong>总结</strong>：如果开启事务，并且需要 select 数据，那么整个表会被这个事务占据，其他客户不能执行写操作。 这是最高的隔离级别，强制所有事务都串行的执行。<h2 id=02-repeatable-read可重复读>02. REPEATABLE READ（可重复读）</h2><pre><code class=language-mysql># 设置隔离级别
+mysql1&gt; set session transaction isolation level repeatable read;
+mysql2&gt; set session transaction isolation level repeatable read;
+
+# 开启事务
+mysql1&gt; start transaction;
+mysql2&gt; start transaction;
+
+# 查询
+mysql1&gt; select * from tb1;
+Empty set (0.00 sec)
+mysql2&gt; select * from tb1;
+Empty set (0.00 sec)
+
+# 可以新增数据
+mysql1&gt; insert into tb1(value) values(&quot;hello&quot;);
+mysql2&gt; insert into tb1(value) values(&quot;hello&quot;);
+
+mysql1&gt; select * from tb1;
++----+-------+
+| id | value |
++----+-------+
+|  1 | hello |
++----+-------+
+
+mysql2&gt; select * from tb1;
++----+-------+
+| id | value |
++----+-------+
+|  2 | hello |
++----+-------+
+
+mysql1&gt; update tb1 set value=&quot;啦啦啦&quot; where id=1;
+# 无法修改，因为 mysql2 客户还未 commit 事务
+mysql1&gt; update tb1 set value=&quot;啦啦啦&quot; where id=2;
+ERROR 1205 (HY000): Lock wait timeout exceeded; try restarting transaction
+
+mysql2&gt; commit;
+mysql1&gt; select * from tb1;
++----+-----------+
+| id | value     |
++----+-----------+
+|  1 | 啦啦啦    |
++----+-----------+
+
+# 成功修改了 mysql2 commit 的事务中的数据
+mysql1&gt; update tb1 set value=&quot;幻读测试&quot; where id=2;
+
+# 产生了幻读：读到别的事务所插入的数据
+mysql1&gt; select * from tb1;
++----+--------------+
+| id | value        |
++----+--------------+
+|  1 | 啦啦啦       |
+|  2 | 幻读测试     |
++----+--------------+
+</code></pre><p><strong>总结</strong>：相对上一级别，可以新增数据/更新数据，其它事务新增/删除数据是透明不可见的，在其它事务没有 commit 之前，不能修改其它事务所增加的数据，commit 后再去修改会产生幻读的问题。<h2 id=03-read-committed提交读不可重复读>03. READ COMMITTED（提交读，不可重复读）</h2><pre><code class=language-mysql># 设置隔离级别
+mysql1&gt; set session transaction isolation level read committed;
+mysql2&gt; set session transaction isolation level read committed;
+# 开启事务
+mysql1&gt; start transaction;
+mysql2&gt; start transaction;
+
+mysql1&gt; insert into tb1(value) values(&quot;hello&quot;);
+
+# 现在还没有
+mysql2&gt; select * from tb1;
+Empty set (0.00 sec)
+
+mysql1&gt; commit;
+
+# commit 后可以读到
+mysql2&gt; select * from tb1;
++----+-------+
+| id | value |
++----+-------+
+|  1 | hello |
++----+-------+
+</code></pre><p><strong>总结</strong>：当一个事务 commit 修改后，那么另一个事务就可以读到所做的修改了。<h2 id=04-read-uncommitted未提交读>04. READ UNCOMMITTED（未提交读）</h2><pre><code class=language-mysql># 设置隔离级别
+mysql1&gt; set session transaction isolation level read uncommitted;
+mysql2&gt; set session transaction isolation level read uncommitted;
+
+# 开启事务
+mysql1&gt; start transaction;
+mysql2&gt; start transaction;
+
+# 此时还没有数据
+mysql2&gt; select * from tb1;
+Empty set (0.00 sec)
+
+# 新增一条数据
+mysql1&gt; insert into tb1(value) values(&quot;hello&quot;);
+
+# 可以查到刚才新增的数据，注意：此时 mysql1 的事务还没有 commit
+mysql2&gt; select * from tb1;
++----+-------+
+| id | value |
++----+-------+
+|  1 | hello |
++----+-------+
+</code></pre><p><strong>总结</strong>：在一个事务内可以读到另一个事物还没有 commit 的修改。</div><ul><li><a href=/tags/database>Database</a></ul></section></main><app></app><noscript>You need to enable JavaScript to run this app.</noscript><script type=module crossorigin src=/assets/index-b1ee8dc4.js></script>
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XWVTHMXTRH"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date),gtag("config","G-XWVTHMXTRH")</script></body></html>
